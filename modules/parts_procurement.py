@@ -1,11 +1,16 @@
 import streamlit as st
 import numpy as np
-import pandas as pd
 import plotly.graph_objects as go
 
 def render():
-    st.header("Parts Procurement")
-    st.caption("Prototype: stock vs demand forecast with supplier/part filters.")
+    st.markdown(
+        """
+        <div class="dss-section">
+          <div class="dss-section-head">Parts Procurement</div>
+          <div class="dss-section-body">
+        """,
+        unsafe_allow_html=True,
+    )
 
     top = st.columns([1, 1, 2])
     with top[0]:
@@ -18,20 +23,20 @@ def render():
     stock = np.clip(np.cumsum(rng.normal(0, 15, 12)) + 260, 80, None).round()
     demand = np.clip(stock + rng.normal(0, 30, 12), 60, None).round()
 
+    st.markdown('<div class="dss-card">', unsafe_allow_html=True)
     fig = go.Figure()
     fig.add_trace(go.Bar(x=weeks, y=stock, name="Stock Levels"))
     fig.add_trace(go.Bar(x=weeks, y=demand, name="Demand Forecast"))
-    fig.add_trace(go.Scatter(x=weeks, y=(stock + demand) / 2, mode="lines+markers", name="Trend"))
-
     fig.update_layout(
         height=420,
         barmode="group",
-        margin=dict(l=10, r=10, t=35, b=10),
+        margin=dict(l=10, r=10, t=30, b=10),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         title=f"Parts Inventory Analysis — {part} / {supplier}"
     )
     st.plotly_chart(fig, use_container_width=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
     alert = (demand[-1] > stock[-1])
     if alert:
@@ -39,10 +44,9 @@ def render():
     else:
         st.success("Procurement Status (Mock): stock covers forecast demand for the latest period.")
 
-    st.markdown("#### Quick Actions (Mock)")
     a1, a2, a3 = st.columns(3)
     a1.button("Generate PO Draft", use_container_width=True)
     a2.button("View Lead Times", use_container_width=True)
     a3.button("Export Report", use_container_width=True)
 
-    st.markdown('<div class="small-muted">Later: plug in supplier lead time + reorder point logic.</div>', unsafe_allow_html=True)
+    st.markdown("</div></div>", unsafe_allow_html=True)
