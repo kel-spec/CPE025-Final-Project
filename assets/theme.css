@@ -1,24 +1,178 @@
-/* Minimal dim theme tweaks */
-:root {
-  --card: rgba(255,255,255,0.04);
-  --border: rgba(255,255,255,0.10);
+/* Dim, clean, consistent UI like your reference */
+
+:root{
+  --bg:#0E1117;
+  --panel:#111827;
+  --panel2:#0F172A;
+  --card:rgba(255,255,255,0.04);
+  --border:rgba(255,255,255,0.10);
+  --muted:rgba(255,255,255,0.70);
+  --text:rgba(255,255,255,0.92);
+  --brand:#2B4B6A;        /* Toyota-like blue */
+  --brand2:#1F3B55;
+  --tab:#0F172A;
+  --tabActive:#2B4B6A;
 }
 
-.block-container { padding-top: 1.25rem; }
+html, body, [class*="css"]{
+  color: var(--text);
+}
+
+.block-container{
+  max-width: 1180px;
+  padding-top: 14px;
+  padding-bottom: 36px;
+}
+
 hr { border-color: var(--border); }
 
-.dss-card {
+/* Top header bar */
+.dss-topbar{
+  background: linear-gradient(90deg, var(--brand2), var(--brand));
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+}
+
+.dss-topbar-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+}
+
+.dss-brand{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.dss-brand-badge{
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.10);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight: 800;
+}
+
+.dss-title{
+  font-size: 26px;
+  font-weight: 800;
+  margin-top: 6px;
+}
+
+.dss-sub{
+  margin-top: 2px;
+  color: rgba(255,255,255,0.80);
+  font-size: 14px;
+}
+
+/* Tab strip (radio horizontal) */
+div[role="radiogroup"]{
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px 8px;
+}
+
+div[role="radiogroup"] > label{
+  margin: 0 6px 0 0 !important;
+}
+
+div[role="radiogroup"] label div{
+  padding: 6px 10px;
+  border-radius: 10px;
+}
+
+div[role="radiogroup"] input:checked + div{
+  background: rgba(43,75,106,0.80);
+  border: 1px solid rgba(255,255,255,0.10);
+}
+
+/* Cards */
+.dss-card{
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 14px 14px 10px 14px;
+  padding: 14px;
 }
 
-.small-muted { opacity: 0.75; font-size: 0.92rem; }
+.dss-card-tight{
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+}
 
-div[data-testid="stMetric"] {
+.dss-section{
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow:hidden;
+  margin-top: 14px;
+}
+
+.dss-section-head{
+  background: rgba(43,75,106,0.50);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding: 10px 14px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+
+.dss-section-body{
+  padding: 14px;
+}
+
+.small-muted{ color: var(--muted); font-size: 13px; }
+
+/* Inputs */
+.stTextInput input, .stSelectbox select, .stNumberInput input{
+  border-radius: 10px !important;
+}
+
+/* Buttons */
+.stButton button{
+  border-radius: 10px !important;
+  border: 1px solid rgba(255,255,255,0.14) !important;
+  background: rgba(255,255,255,0.03) !important;
+}
+
+.stButton button:hover{
+  background: rgba(255,255,255,0.06) !important;
+}
+
+/* Metrics */
+div[data-testid="stMetric"]{
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 10px 12px;
+}
+
+/* Login layout */
+.dss-auth-wrap{
+  max-width: 520px;
+  margin: 18px auto 0 auto;
+}
+.dss-auth-head{
+  background: rgba(43,75,106,0.55);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-bottom: none;
+  border-radius: 14px 14px 0 0;
+  padding: 10px 14px;
+  font-weight: 900;
+  text-align:center;
+}
+.dss-auth-body{
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0 0 14px 14px;
+  padding: 14px;
 }
