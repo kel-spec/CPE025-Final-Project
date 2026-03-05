@@ -1,5 +1,12 @@
 .streamlit/secrets.toml
 
+# Streamlit secrets (never commit)
+.streamlit/secrets.toml
+
+# Local SQLite DB generated at runtime (never commit)
+data/*.db
+data/*.db-journal
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
