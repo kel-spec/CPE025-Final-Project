@@ -1,1 +1,24 @@
+/* Minimal dim theme tweaks */
+:root {
+  --card: rgba(255,255,255,0.04);
+  --border: rgba(255,255,255,0.10);
+}
 
+.block-container { padding-top: 1.25rem; }
+hr { border-color: var(--border); }
+
+.dss-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 14px 10px 14px;
+}
+
+.small-muted { opacity: 0.75; font-size: 0.92rem; }
+
+div[data-testid="stMetric"] {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px 12px;
+}
