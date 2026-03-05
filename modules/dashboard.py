@@ -1,6 +1,7 @@
 import streamlit as st
 import numpy as np
 import plotly.graph_objects as go
+from modules.nav import goto
 
 def _mini_line(title: str, seed: int = 1):
     rng = np.random.default_rng(seed)
