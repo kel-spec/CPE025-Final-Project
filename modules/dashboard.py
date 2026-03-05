@@ -10,9 +10,12 @@ def _mini_line(title: str, seed: int = 1):
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=x, y=y, mode="lines+markers", name=title))
     fig.update_layout(
-        height=240, margin=dict(l=10, r=10, t=35, b=10),
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        showlegend=False, title=title
+        height=240,
+        margin=dict(l=10, r=10, t=35, b=10),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        showlegend=False,
+        title=title,
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -39,21 +42,27 @@ def render():
         st.markdown('<div class="dss-card-tight">', unsafe_allow_html=True)
         st.write("EV Smart Routing")
         st.caption("Prototype map + ETA list")
-        st.button("Open EV Routing", use_container_width=True, key="qa_ev")
+        if st.button("Open EV Routing", use_container_width=True, key="qa_ev"):
+            goto("ev")
+            st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
     with qa2:
         st.markdown('<div class="dss-card-tight">', unsafe_allow_html=True)
         st.write("Sales Forecasting")
         st.caption("Prototype actual vs forecast")
-        st.button("Open Sales Forecasting", use_container_width=True, key="qa_sales")
+        if st.button("Open Sales Forecasting", use_container_width=True, key="qa_sales"):
+            goto("sales")
+            st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
     with qa3:
         st.markdown('<div class="dss-card-tight">', unsafe_allow_html=True)
         st.write("Parts Procurement")
         st.caption("Prototype stock vs demand")
-        st.button("Open Parts Procurement", use_container_width=True, key="qa_parts")
+        if st.button("Open Parts Procurement", use_container_width=True, key="qa_parts"):
+            goto("parts")
+            st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("</div></div>", unsafe_allow_html=True)
@@ -66,10 +75,15 @@ def render():
         """,
         unsafe_allow_html=True,
     )
+
     t1, t2 = st.columns(2)
     with t1:
         _mini_line("Sales Trend (Mock)", seed=10)
     with t2:
         _mini_line("Parts Demand (Mock)", seed=20)
-    st.markdown('<div class="small-muted">Mock visuals only. Replace with real data/models later.</div>', unsafe_allow_html=True)
+
+    st.markdown(
+        '<div class="small-muted">Mock visuals only. Replace with real data/models later.</div>',
+        unsafe_allow_html=True,
+    )
     st.markdown("</div></div>", unsafe_allow_html=True)
