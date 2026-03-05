@@ -10,8 +10,6 @@
   --text:rgba(255,255,255,0.92);
   --brand:#2B4B6A;        /* Toyota-like blue */
   --brand2:#1F3B55;
-  --tab:#0F172A;
-  --tabActive:#2B4B6A;
 }
 
 html, body, [class*="css"]{
@@ -73,26 +71,60 @@ hr { border-color: var(--border); }
   font-size: 14px;
 }
 
-/* Tab strip (radio horizontal) */
+/* Tab strip (Streamlit radio -> pill tabs)
+   Fix: remove radio circles, align text, consistent pills */
 div[role="radiogroup"]{
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
   background: rgba(255,255,255,0.03);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 6px 8px;
+  border-radius: 14px;
+  padding: 10px 12px;
 }
 
+/* Each option label becomes a pill */
 div[role="radiogroup"] > label{
-  margin: 0 6px 0 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
-div[role="radiogroup"] label div{
-  padding: 6px 10px;
-  border-radius: 10px;
+/* Hide the radio dot/circle but keep it clickable */
+div[role="radiogroup"] > label > input[type="radio"]{
+  position: absolute !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  pointer-events: none !important;
 }
 
-div[role="radiogroup"] input:checked + div{
-  background: rgba(43,75,106,0.80);
-  border: 1px solid rgba(255,255,255,0.10);
+/* The visible pill container */
+div[role="radiogroup"] > label > div{
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 10px 14px !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  background: rgba(255,255,255,0.02) !important;
+  line-height: 1 !important;
+  min-height: 42px !important;
+  font-weight: 700 !important;
+}
+
+/* Active tab highlight */
+div[role="radiogroup"] > label:has(input:checked) > div{
+  background: rgba(43,75,106,0.85) !important;
+  border: 1px solid rgba(255,255,255,0.16) !important;
+}
+
+/* Prevent extra spacing artifacts */
+div[role="radiogroup"] svg,
+div[role="radiogroup"] [data-testid="stMarkdownContainer"] > p{
+  margin: 0 !important;
 }
 
 /* Cards */
