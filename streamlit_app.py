@@ -1,10 +1,15 @@
 import streamlit as st
 from modules.auth import authenticate, create_user, ensure_default_admin
 from modules.db import init_db
-from modules.nav import PAGES, goto
 from modules import dashboard, ev_routing, sales_forecasting, parts_procurement
 
-APP_TITLE = "Toyota Decision Support System (Prototype)"
+APP_TITLE = "Toyota Decision Support System"
+PAGES = {
+    "dashboard": "Quick Access",
+    "ev": "EV Smart Routing",
+    "sales": "Sales Forecasting",
+    "parts": "Parts Procurement",
+}
 
 def load_css():
     try:
@@ -14,12 +19,9 @@ def load_css():
         pass
 
 def init_state():
-    if "authed" not in st.session_state:
-        st.session_state["authed"] = False
-    if "user" not in st.session_state:
-        st.session_state["user"] = None
-    if "page" not in st.session_state:
-        st.session_state["page"] = "dashboard"
+    st.session_state.setdefault("authed", False)
+    st.session_state.setdefault("user", None)
+    st.session_state.setdefault("page", "dashboard")
 
 def logout():
     st.session_state["authed"] = False
@@ -27,14 +29,61 @@ def logout():
     st.session_state["page"] = "dashboard"
     st.rerun()
 
+def top_shell():
+    user = st.session_state.get("user")
+    uname = user["username"] if user else "Users"
+    role = user["role"] if user else ""
+
+    st.markdown(
+        f"""
+        <div class="dss-topbar">
+          <div class="dss-topbar-row">
+            <div class="dss-brand">
+              <div class="dss-brand-badge">T</div>
+              <div>TOYOTA</div>
+            </div>
+            <div style="text-align:right">
+              <div class="small-muted">Welcome, {uname}! {f"({role})" if role else ""}</div>
+            </div>
+          </div>
+          <div class="dss-title">{APP_TITLE}</div>
+          <div class="dss-sub">Decision Support System (Prototype)</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+def tabs_nav():
+    cols = st.columns([4, 1])
+    with cols[0]:
+        current = st.session_state["page"]
+        selection = st.radio(
+            "Navigation",
+            options=list(PAGES.keys()),
+            index=list(PAGES.keys()).index(current),
+            format_func=lambda k: PAGES[k],
+            horizontal=True,
+            label_visibility="collapsed",
+        )
+        st.session_state["page"] = selection
+    with cols[1]:
+        st.button("Log out", on_click=logout, use_container_width=True)
+
 def auth_screen():
-    st.title(APP_TITLE)
-    st.caption("Baseline: Sign in / Sign up (User/Admin).")
+    top_shell()
 
-    tab1, tab2 = st.tabs(["Sign In", "Sign Up"])
+    st.markdown('<div class="dss-auth-wrap">', unsafe_allow_html=True)
+    mode = st.radio(
+        "Mode",
+        ["Sign In", "Sign Up"],
+        horizontal=True,
+        label_visibility="collapsed",
+    )
 
-    with tab1:
-        st.markdown('<div class="dss-card">', unsafe_allow_html=True)
+    st.markdown('<div class="dss-auth-head">Login</div>', unsafe_allow_html=True)
+    st.markdown('<div class="dss-auth-body">', unsafe_allow_html=True)
+
+    if mode == "Sign In":
         username = st.text_input("Username", key="li_user")
         password = st.text_input("Password", type="password", key="li_pass")
         if st.button("Sign In", use_container_width=True):
@@ -46,62 +95,19 @@ def auth_screen():
                 st.rerun()
             else:
                 st.error("Invalid username/password.")
-        st.markdown("</div>", unsafe_allow_html=True)
 
-    with tab2:
-        st.markdown('<div class="dss-card">', unsafe_allow_html=True)
+    else:
         username = st.text_input("Create Username", key="su_user")
         password = st.text_input("Create Password", type="password", key="su_pass")
         role = st.selectbox("Role", ["user", "admin"], index=0)
-        st.caption("Prototype note: admin signup is allowed here; lock this down later.")
         if st.button("Create Account", use_container_width=True):
             ok, msg = create_user(username, password, role)
             if ok:
                 st.success(msg)
             else:
                 st.error(msg)
-        st.markdown("</div>", unsafe_allow_html=True)
 
-def top_nav():
-    st.markdown("---")
-    cols = st.columns([1, 1, 1, 1, 2])
-    with cols[0]:
-        if st.button("Quick Access", use_container_width=True):
-            goto("dashboard")
-    with cols[1]:
-        if st.button("EV Smart Routing", use_container_width=True):
-            goto("ev")
-    with cols[2]:
-        if st.button("Sales Forecasting", use_container_width=True):
-            goto("sales")
-    with cols[3]:
-        if st.button("Parts Procurement", use_container_width=True):
-            goto("parts")
-    with cols[4]:
-        st.write("")
-        st.write("")
-        st.button("Log out", on_click=logout, use_container_width=True)
-
-def side_panel():
-    with st.sidebar:
-        st.header("Menu")
-        st.caption(f"Signed in as: {st.session_state['user']['username']}")
-        st.caption(f"Role: {st.session_state['user']['role']}")
-        st.markdown("---")
-        page = st.radio("Navigate", list(PAGES.keys()),
-                        format_func=lambda k: PAGES[k],
-                        index=list(PAGES.keys()).index(st.session_state["page"]))
-        st.session_state["page"] = page
-
-        st.markdown("---")
-        if st.session_state["user"]["role"] == "admin":
-            st.subheader("Admin Panel (Mock)")
-            st.button("User Management", use_container_width=True)
-            st.button("System Settings", use_container_width=True)
-        else:
-            st.subheader("User Tools (Mock)")
-            st.button("Saved Reports", use_container_width=True)
-            st.button("Profile", use_container_width=True)
+    st.markdown("</div></div>", unsafe_allow_html=True)
 
 def render_page():
     page = st.session_state["page"]
@@ -117,7 +123,7 @@ def render_page():
         dashboard.render()
 
 def main():
-    st.set_page_config(page_title=APP_TITLE, layout="wide")
+    st.set_page_config(page_title=f"{APP_TITLE} (Prototype)", layout="wide")
     load_css()
     init_db()
     ensure_default_admin()
@@ -127,8 +133,8 @@ def main():
         auth_screen()
         return
 
-    top_nav()
-    side_panel()
+    top_shell()
+    tabs_nav()
     render_page()
 
 if __name__ == "__main__":
