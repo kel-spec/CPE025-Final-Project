@@ -14,9 +14,12 @@ def load_css():
         pass
 
 def init_state():
-    st.session_state.setdefault("authed", False)
-    st.session_state.setdefault("user", None)
-    st.session_state.setdefault("page", "dashboard")
+    if "authed" not in st.session_state:
+        st.session_state["authed"] = False
+    if "user" not in st.session_state:
+        st.session_state["user"] = None
+    if "page" not in st.session_state:
+        st.session_state["page"] = "dashboard"
 
 def logout():
     st.session_state["authed"] = False
@@ -26,7 +29,7 @@ def logout():
 
 def auth_screen():
     st.title(APP_TITLE)
-    st.caption("Sign in / Sign up baseline (User/Admin roles).")
+    st.caption("Baseline: Sign in / Sign up (User/Admin).")
 
     tab1, tab2 = st.tabs(["Sign In", "Sign Up"])
 
@@ -50,7 +53,7 @@ def auth_screen():
         username = st.text_input("Create Username", key="su_user")
         password = st.text_input("Create Password", type="password", key="su_pass")
         role = st.selectbox("Role", ["user", "admin"], index=0)
-        st.caption("Prototype: admin signup is allowed. Restrict later.")
+        st.caption("Prototype note: admin signup is allowed here; lock this down later.")
         if st.button("Create Account", use_container_width=True):
             ok, msg = create_user(username, password, role)
             if ok:
@@ -85,17 +88,14 @@ def side_panel():
         st.caption(f"Signed in as: {st.session_state['user']['username']}")
         st.caption(f"Role: {st.session_state['user']['role']}")
         st.markdown("---")
-        page = st.radio(
-            "Navigate",
-            list(PAGES.keys()),
-            format_func=lambda k: PAGES[k],
-            index=list(PAGES.keys()).index(st.session_state["page"]),
-        )
+        page = st.radio("Navigate", list(PAGES.keys()),
+                        format_func=lambda k: PAGES[k],
+                        index=list(PAGES.keys()).index(st.session_state["page"]))
         st.session_state["page"] = page
 
         st.markdown("---")
         if st.session_state["user"]["role"] == "admin":
-            st.subheader("Admin (Mock)")
+            st.subheader("Admin Panel (Mock)")
             st.button("User Management", use_container_width=True)
             st.button("System Settings", use_container_width=True)
         else:
