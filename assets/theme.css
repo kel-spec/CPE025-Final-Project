@@ -208,3 +208,20 @@ div[data-testid="stMetric"]{
   border-radius: 0 0 14px 14px;
   padding: 14px;
 }
+
+/* Remove the weird empty rounded bar above Login (Streamlit phantom container) */
+.auth-card > div:first-child:empty{
+  display: none !important;
+}
+
+/* More robust: hide any empty markdown/container blocks inside the auth card */
+.auth-card [data-testid="stMarkdownContainer"]:empty,
+.auth-card [data-testid="stMarkdownContainer"] > p:empty{
+  display: none !important;
+}
+
+/* If an empty horizontal block is being rendered, remove its spacing */
+.auth-card .element-container:has(> div:empty){
+  margin: 0 !important;
+  padding: 0 !important;
+}
