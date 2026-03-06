@@ -23,6 +23,25 @@ EV_OPTIONS = [
     "Other (EV)",
 ]
 
+# Replace this text later with your final privacy disclosure/manual content.
+PRIVACY_TEXT = """
+## Privacy Disclosure (Prototype)
+
+We collect:
+- First name, last name, username, email
+- Selected electric vehicle type
+
+Purpose:
+- Account creation
+- Displaying account info in the user profile page
+- Basic personalization of the system
+
+Storage:
+- Saved in the project database for this prototype.
+
+If you want your data deleted, contact the system administrator.
+"""
+
 def load_css():
     try:
         with open("assets/theme.css", "r", encoding="utf-8") as f:
@@ -58,6 +77,7 @@ def init_state():
     st.session_state.setdefault("authed", False)
     st.session_state.setdefault("user", None)
     st.session_state.setdefault("page", "dashboard")
+    st.session_state.setdefault("privacy_ack", False)
 
 def logout():
     st.session_state["authed"] = False
@@ -106,6 +126,17 @@ def tabs_nav():
         st.button("Log out", on_click=logout, use_container_width=True)
 
 def auth_screen():
+    # Modal popup for privacy disclosure
+    @st.dialog("Privacy Disclosure")
+    def privacy_modal():
+        st.markdown(PRIVACY_TEXT)
+        st.divider()
+        col1, col2 = st.columns([1, 1])
+        with col2:
+            if st.button("I Understand", use_container_width=True):
+                st.session_state["privacy_ack"] = True
+                st.rerun()
+
     # Layout: left blank space, right form (like reference, no background image)
     left, right = st.columns([3, 2], vertical_alignment="top")
 
@@ -114,10 +145,10 @@ def auth_screen():
         st.markdown('<div class="auth-title">Login</div>', unsafe_allow_html=True)
         st.markdown('<div class="auth-sub">Sign in or register your electric vehicle.</div>', unsafe_allow_html=True)
 
-        mode = st.tabs(["Sign In", "Sign Up"])
+        tabs = st.tabs(["Sign In", "Sign Up"])
 
         # SIGN IN
-        with mode[0]:
+        with tabs[0]:
             username = st.text_input("Username", key="li_user")
             password = st.text_input("Password", type="password", key="li_pass")
             if st.button("Sign In", use_container_width=True):
@@ -130,8 +161,8 @@ def auth_screen():
                 else:
                     st.error("Invalid username/password.")
 
-        # SIGN UP (NO ADMIN)
-        with mode[1]:
+        # SIGN UP (NO ADMIN OPTION)
+        with tabs[1]:
             first_name = st.text_input("First Name", key="su_first")
             last_name = st.text_input("Last Name", key="su_last")
             username = st.text_input("Username", key="su_user")
@@ -147,14 +178,21 @@ def auth_screen():
                 key="su_vehicle",
             )
 
-            # Privacy link (replace with your real URL later)
-            st.markdown("[Privacy Manual / Disclosure](https://example.com/privacy)")
+            # Privacy disclosure modal trigger
+            if st.button("View Privacy Disclosure", use_container_width=True):
+                privacy_modal()
 
             privacy_ok = st.checkbox(
                 "I have read and understood the privacy disclosure.",
-                value=False,
+                value=st.session_state["privacy_ack"],
+                disabled=not st.session_state["privacy_ack"],
                 key="su_privacy",
             )
+
+            if st.session_state["privacy_ack"]:
+                st.caption("Privacy disclosure acknowledged.")
+            else:
+                st.caption("Open the disclosure and click “I Understand” to continue.")
 
             if st.button("Sign Up", use_container_width=True):
                 if password != confirm:
@@ -167,7 +205,7 @@ def auth_screen():
                         email=email,
                         password=password,
                         vehicle_type=vehicle_type,
-                        privacy_accepted=privacy_ok,
+                        privacy_accepted=st.session_state["privacy_ack"],
                     )
                     if ok:
                         st.success(msg)
