@@ -46,9 +46,6 @@ hr { border-color: var(--border); }
 .dss-title{ font-size: 26px; font-weight: 800; margin-top: 6px; }
 .dss-sub{ margin-top: 2px; color: rgba(255,255,255,0.80); font-size: 14px; }
 
-/* IMPORTANT:
-   Only style the navigation radio as pills.
-   DO NOT style all radiogroups globally (causes the top “ghost pill”). */
 .dss-nav div[role="radiogroup"]{
   display: flex !important;
   flex-wrap: wrap;
@@ -161,7 +158,6 @@ div[data-testid="stMetric"]{
   padding: 14px;
 }
 
-/* Clean up empty/ghost containers inside auth card */
 .auth-card [data-testid="stMarkdownContainer"]:empty,
 .auth-card [data-testid="stMarkdownContainer"] > p:empty{
   display: none !important;
