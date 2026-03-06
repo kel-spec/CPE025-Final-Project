@@ -23,7 +23,6 @@ EV_OPTIONS = [
     "Other (EV)",
 ]
 
-# Replace this text later with your final privacy disclosure/manual content.
 PRIVACY_TEXT = """
 ## Privacy Disclosure (Prototype)
 
@@ -126,7 +125,6 @@ def tabs_nav():
         st.button("Log out", on_click=logout, use_container_width=True)
 
 def auth_screen():
-    # Modal popup for privacy disclosure
     @st.dialog("Privacy Disclosure")
     def privacy_modal():
         st.markdown(PRIVACY_TEXT)
@@ -137,8 +135,8 @@ def auth_screen():
                 st.session_state["privacy_ack"] = True
                 st.rerun()
 
-    # Layout: left blank space, right form (like reference, no background image)
-    left, right = st.columns([3, 2], vertical_alignment="top")
+    # Layout: left blank space, right form
+    left, right, pad = st.columns([3, 2, 0.2], vertical_alignment="top")
 
     with right:
         st.markdown('<div class="auth-card">', unsafe_allow_html=True)
@@ -147,7 +145,6 @@ def auth_screen():
 
         tabs = st.tabs(["Sign In", "Sign Up"])
 
-        # SIGN IN
         with tabs[0]:
             username = st.text_input("Username", key="li_user")
             password = st.text_input("Password", type="password", key="li_pass")
@@ -161,7 +158,6 @@ def auth_screen():
                 else:
                     st.error("Invalid username/password.")
 
-        # SIGN UP (NO ADMIN OPTION)
         with tabs[1]:
             first_name = st.text_input("First Name", key="su_first")
             last_name = st.text_input("Last Name", key="su_last")
@@ -178,7 +174,6 @@ def auth_screen():
                 key="su_vehicle",
             )
 
-            # Privacy disclosure modal trigger
             if st.button("View Privacy Disclosure", use_container_width=True):
                 privacy_modal()
 
