@@ -61,12 +61,8 @@ def load_css():
         }
         .auth-title{font-size:26px;font-weight:800;margin-bottom:6px;}
         .auth-sub{opacity:0.75;margin-bottom:14px;}
-        .stTextInput input, .stSelectbox select{
-          border-radius: 6px !important;
-        }
-        .stButton button{
-          border-radius: 6px !important;
-        }
+        .stTextInput input, .stSelectbox select{ border-radius: 6px !important; }
+        .stButton button{ border-radius: 6px !important; }
         </style>
         """,
         unsafe_allow_html=True,
@@ -111,6 +107,7 @@ def top_shell():
 def tabs_nav():
     cols = st.columns([4, 1])
     with cols[0]:
+        st.markdown('<div class="dss-nav">', unsafe_allow_html=True)
         current = st.session_state["page"]
         selection = st.radio(
             "Navigation",
@@ -120,7 +117,9 @@ def tabs_nav():
             horizontal=True,
             label_visibility="collapsed",
         )
+        st.markdown("</div>", unsafe_allow_html=True)
         st.session_state["page"] = selection
+
     with cols[1]:
         st.button("Log out", on_click=logout, use_container_width=True)
 
@@ -177,7 +176,7 @@ def auth_screen():
             if st.button("View Privacy Disclosure", use_container_width=True):
                 privacy_modal()
 
-            privacy_ok = st.checkbox(
+            st.checkbox(
                 "I have read and understood the privacy disclosure.",
                 value=st.session_state["privacy_ack"],
                 disabled=not st.session_state["privacy_ack"],
