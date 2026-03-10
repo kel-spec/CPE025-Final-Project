@@ -17,9 +17,9 @@ EV_OPTIONS = [
     "Other (EV)",
 ]
 
-# Use direct image URLs (more reliable than "source.unsplash.com")
-# Replace later with your own images in /assets and use st.image or base64.
-SECTION_BG = {
+# Replace these later with local assets for 100% reliability.
+# These are stable "images.unsplash.com" URLs (not the random "source.unsplash.com").
+HERO_IMAGES = {
     "home": "https://images.unsplash.com/photo-1619767886558-efdc259cde1a?auto=format&fit=crop&w=2400&q=80",
     "about": "https://images.unsplash.com/photo-1611843467160-25afb8df1074?auto=format&fit=crop&w=2400&q=80",
     "modules": "https://images.unsplash.com/photo-1609520505218-7421b92a1f8a?auto=format&fit=crop&w=2400&q=80",
@@ -51,9 +51,25 @@ def load_css():
 def init_state():
     st.session_state.setdefault("authed", False)
     st.session_state.setdefault("user", None)
-    st.session_state.setdefault("page", "home")      # home | auth | dashboard | ev | sales | parts
+    st.session_state.setdefault("page", "home")     # home | auth | dashboard | ev | sales | parts
     st.session_state.setdefault("privacy_ack", False)
     st.session_state.setdefault("menu_open", False)
+
+def set_sidebar_visibility():
+    # Toggle sidebar open/closed using CSS (same button)
+    if st.session_state["menu_open"]:
+        css = """
+        <style>
+        section[data-testid="stSidebar"]{ display:block !important; }
+        </style>
+        """
+    else:
+        css = """
+        <style>
+        section[data-testid="stSidebar"]{ display:none !important; }
+        </style>
+        """
+    st.markdown(css, unsafe_allow_html=True)
 
 def top_shell():
     user = st.session_state.get("user")
@@ -79,8 +95,9 @@ def top_shell():
         unsafe_allow_html=True,
     )
 
-def nav_bar():
-    # Different options depending on login state
+def top_nav():
+    # Text nav (Home / Login) when logged out.
+    # When logged in, shows app pages too.
     if st.session_state["authed"]:
         nav = {
             "home": "Home",
@@ -95,15 +112,16 @@ def nav_bar():
             "auth": "Login / Sign Up",
         }
 
-    cols = st.columns([5, 1, 1])
+    cols = st.columns([6, 1, 1])
+
     with cols[0]:
-        st.markdown('<div class="dss-nav">', unsafe_allow_html=True)
+        st.markdown('<div class="topnav">', unsafe_allow_html=True)
         current = st.session_state["page"]
-        # If current is not available (e.g., user logged out), default to home
         if current not in nav:
             current = "home"
             st.session_state["page"] = "home"
-        selection = st.radio(
+
+        choice = st.radio(
             "Navigation",
             options=list(nav.keys()),
             index=list(nav.keys()).index(current),
@@ -112,12 +130,14 @@ def nav_bar():
             label_visibility="collapsed",
         )
         st.markdown("</div>", unsafe_allow_html=True)
-        st.session_state["page"] = selection
+        st.session_state["page"] = choice
 
     with cols[1]:
-        if st.button("☰ Menu", use_container_width=True):
-            st.session_state["menu_open"] = True
+        st.markdown('<div class="menu-btn">', unsafe_allow_html=True)
+        if st.button("≡ Menu", use_container_width=True):
+            st.session_state["menu_open"] = not st.session_state["menu_open"]
             st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
     with cols[2]:
         if st.session_state["authed"]:
@@ -128,45 +148,37 @@ def nav_bar():
                 st.session_state["menu_open"] = False
                 st.rerun()
 
-def drawer_menu():
-    if not st.session_state["menu_open"]:
-        return
+def sidebar_menu():
+    # Sidebar content only (visibility toggled by CSS)
+    st.sidebar.title("Menu")
+    st.sidebar.caption("Scroll shortcuts")
 
-    # Drawer content (anchors work on Home page)
-    st.markdown(
-        """
-        <div class="drawer">
-          <h3>Menu</h3>
-          <a href="#home">Home</a>
-          <a href="#about">About</a>
-          <a href="#modules">Modules</a>
-          <a href="#proceed">Proceed</a>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    # These only work on Home page (anchors).
+    if st.sidebar.button("Home", use_container_width=True):
+        st.session_state["page"] = "home"
+        st.rerun()
+    st.sidebar.markdown("[About](#about)")
+    st.sidebar.markdown("[Modules](#modules)")
+    st.sidebar.markdown("[Proceed](#proceed)")
 
-    # Real close button (not trapped)
-    if st.button("Close Menu", use_container_width=True):
+    st.sidebar.divider()
+    if st.sidebar.button("Close", use_container_width=True):
         st.session_state["menu_open"] = False
         st.rerun()
 
-def landing_section(section_id: str, kicker: str, title: str, sub: str, right_panel_html: str):
-    img = SECTION_BG[section_id]
+def hero_section(section_id: str, kicker: str, title: str, sub: str, show_cta: bool = False):
+    img = HERO_IMAGES.get(section_id, "")
     st.markdown(f'<a id="{section_id}"></a>', unsafe_allow_html=True)
+
     st.markdown(
         f"""
-        <div class="l-section">
-          <img class="l-bg" src="{img}" alt="{section_id}" />
-          <div class="l-overlay"></div>
-          <div class="l-content">
-            <div>
-              <div class="l-kicker">{kicker}</div>
-              <div class="l-title">{title}</div>
-              <div class="l-sub">{sub}</div>
-            </div>
-            <div class="l-panel">
-              {right_panel_html}
+        <div class="hero">
+          <img src="{img}" alt="{section_id}" />
+          <div class="hero-content">
+            <div class="hero-inner">
+              <div class="hero-kicker">{kicker}</div>
+              <div class="hero-title">{title}</div>
+              <div class="hero-sub">{sub}</div>
             </div>
           </div>
         </div>
@@ -174,59 +186,54 @@ def landing_section(section_id: str, kicker: str, title: str, sub: str, right_pa
         unsafe_allow_html=True,
     )
 
-def home_page():
-    drawer_menu()
+    if show_cta:
+        st.markdown('<div class="landing-root">', unsafe_allow_html=True)
+        c1, c2 = st.columns([1, 1])
+        with c1:
+            if st.button("PROCEED TO LOGIN / SIGN UP", use_container_width=True):
+                st.session_state["page"] = "auth"
+                st.rerun()
+        with c2:
+            if st.session_state["authed"]:
+                if st.button("GO TO QUICK ACCESS", use_container_width=True):
+                    st.session_state["page"] = "dashboard"
+                    st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    landing_section(
+def home_page():
+    sidebar_menu()
+
+    hero_section(
         "home",
         "TOYOTA",
         "Decision Support System",
         "EV smart routing, sales forecasting, and parts procurement in one consistent prototype dashboard.",
-        "<b>Purpose</b><br><span style='opacity:0.75'>Operational decision support for EV workflows.</span>",
+        show_cta=False,
     )
 
-    landing_section(
+    hero_section(
         "about",
         "ABOUT",
         "What this prototype does",
-        "A web-based decision support prototype that demonstrates EV operations planning and analytics modules with a consistent UI.",
-        "<b>Scope</b><br><span style='opacity:0.75'>Routing + Forecasting + Procurement.</span>",
+        "A web-based decision support prototype demonstrating EV operations planning and analytics modules with a consistent UI.",
+        show_cta=False,
     )
 
-    landing_section(
+    hero_section(
         "modules",
         "MODULES",
         "Core features",
-        "Routing support, forecasting visuals, and inventory/procurement insights. Data and models are mock for now.",
-        """
-        <b>Included</b><br>
-        <span style='opacity:0.75'>• EV Smart Routing</span><br>
-        <span style='opacity:0.75'>• Sales Forecasting</span><br>
-        <span style='opacity:0.75'>• Parts Procurement</span>
-        """,
+        "EV Smart Routing, Sales Forecasting, and Parts Procurement. Data/models are mock for now.",
+        show_cta=False,
     )
 
-    # Proceed section with real buttons
-    landing_section(
+    hero_section(
         "proceed",
         "PROCEED",
         "Login / Register",
         "Register your EV and access the prototype modules.",
-        "<b>Next</b><br><span style='opacity:0.75'>Proceed to authentication.</span>",
+        show_cta=True,
     )
-
-    c1, c2 = st.columns([1, 1])
-    with c1:
-        if st.button("Proceed to Login / Sign Up", use_container_width=True):
-            st.session_state["page"] = "auth"
-            st.session_state["menu_open"] = False
-            st.rerun()
-    with c2:
-        if st.session_state["authed"]:
-            if st.button("Go to Quick Access", use_container_width=True):
-                st.session_state["page"] = "dashboard"
-                st.session_state["menu_open"] = False
-                st.rerun()
 
 def auth_page():
     @st.dialog("Privacy Disclosure")
@@ -239,7 +246,7 @@ def auth_page():
                 st.session_state["privacy_ack"] = True
                 st.rerun()
 
-    drawer_menu()
+    sidebar_menu()
 
     left, right = st.columns([3, 2], vertical_alignment="top")
     with right:
@@ -303,10 +310,8 @@ def auth_page():
         st.markdown("</div>", unsafe_allow_html=True)
 
 def app_pages():
-    drawer_menu()
-
+    sidebar_menu()
     page = st.session_state["page"]
-
     if page == "dashboard":
         dashboard.render()
     elif page == "ev":
@@ -325,10 +330,11 @@ def main():
     ensure_default_admin()
     init_state()
 
-    top_shell()
-    nav_bar()
+    set_sidebar_visibility()
 
-    # Page router
+    top_shell()
+    top_nav()
+
     if st.session_state["page"] == "home":
         home_page()
         return
@@ -337,7 +343,6 @@ def main():
         auth_page()
         return
 
-    # Protected pages
     if not st.session_state["authed"]:
         st.session_state["page"] = "auth"
         auth_page()
