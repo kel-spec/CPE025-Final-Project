@@ -27,9 +27,7 @@ section[data-testid="stSidebar"], button[data-testid="collapsedControl"]{
 hr { border-color: var(--border); }
 
 /* ---------- Landing (Bugatti-ish) ---------- */
-.landing{
-  margin-top: 0;
-}
+.landing{ margin-top: 0; }
 
 /* Fixed top bar */
 .l-topbar{
@@ -64,14 +62,10 @@ hr { border-color: var(--border); }
   display:flex; align-items:center; justify-content:center;
   font-weight: 900;
 }
-.l-btn{
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.04);
-  border-radius: 10px;
-  padding: 10px 12px;
-  cursor:pointer;
-  color: var(--text);
-  font-weight: 800;
+
+/* Make sure Streamlit hamburger button is not under the fixed topbar */
+.hamburger-spacer{
+  height: 72px;
 }
 
 /* Drawer overlay */
@@ -105,9 +99,6 @@ hr { border-color: var(--border); }
   margin-bottom: 10px;
 }
 .drawer a:hover{ background: rgba(255,255,255,0.06); }
-.drawer .close{
-  margin-top: 10px;
-}
 
 /* Full-height sections */
 .l-section{
@@ -115,7 +106,7 @@ hr { border-color: var(--border); }
   min-height: 100vh;
   display:flex;
   align-items:flex-end;
-  padding: 92px 18px 46px 18px; /* top includes fixed bar */
+  padding: 110px 18px 46px 18px; /* pushed lower */
   border-bottom: 1px solid rgba(255,255,255,0.06);
   background-size: cover;
   background-position: center;
@@ -161,7 +152,7 @@ hr { border-color: var(--border); }
   backdrop-filter: blur(10px);
 }
 
-/* Make the auth card simpler */
+/* Auth card */
 .auth-card{
   background: rgba(12,16,23,0.70);
   border: 1px solid rgba(255,255,255,0.10);
@@ -174,7 +165,7 @@ hr { border-color: var(--border); }
 .stTextInput input, .stSelectbox select{ border-radius: 6px !important; }
 .stButton button{ border-radius: 8px !important; }
 
-/* Logged-in top shell stays same as before */
+/* Logged-in top shell */
 .dss-topbar{
   background: linear-gradient(90deg, var(--brand2), var(--brand));
   border: 1px solid rgba(255,255,255,0.08);
