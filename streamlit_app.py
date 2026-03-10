@@ -215,7 +215,7 @@ def home_page():
         "about",
         "ABOUT",
         "What this prototype does",
-        "A web-based decision support prototype demonstrating EV operations planning and analytics modules with a consistent UI.",
+        "A Web-based Decision Support System for users who want to utilize their Electric Vehicles(EV) to their full potential.",
         show_cta=False,
     )
 
