@@ -17,8 +17,6 @@ EV_OPTIONS = [
     "Other (EV)",
 ]
 
-# Replace these later with local assets for 100% reliability.
-# These are stable "images.unsplash.com" URLs (not the random "source.unsplash.com").
 HERO_IMAGES = {
     "home": "https://images.unsplash.com/photo-1619767886558-efdc259cde1a?auto=format&fit=crop&w=2400&q=80",
     "about": "https://images.unsplash.com/photo-1611843467160-25afb8df1074?auto=format&fit=crop&w=2400&q=80",
@@ -56,20 +54,16 @@ def init_state():
     st.session_state.setdefault("menu_open", False)
 
 def set_sidebar_visibility():
-    # Toggle sidebar open/closed using CSS (same button)
     if st.session_state["menu_open"]:
-        css = """
-        <style>
-        section[data-testid="stSidebar"]{ display:block !important; }
-        </style>
-        """
+        st.markdown(
+            "<style>section[data-testid='stSidebar']{display:block !important;}</style>",
+            unsafe_allow_html=True,
+        )
     else:
-        css = """
-        <style>
-        section[data-testid="stSidebar"]{ display:none !important; }
-        </style>
-        """
-    st.markdown(css, unsafe_allow_html=True)
+        st.markdown(
+            "<style>section[data-testid='stSidebar']{display:none !important;}</style>",
+            unsafe_allow_html=True,
+        )
 
 def top_shell():
     user = st.session_state.get("user")
@@ -96,8 +90,6 @@ def top_shell():
     )
 
 def top_nav():
-    # Text nav (Home / Login) when logged out.
-    # When logged in, shows app pages too.
     if st.session_state["authed"]:
         nav = {
             "home": "Home",
@@ -149,27 +141,79 @@ def top_nav():
                 st.rerun()
 
 def sidebar_menu():
-    # Sidebar content only (visibility toggled by CSS)
     st.sidebar.title("Menu")
     st.sidebar.caption("Scroll shortcuts")
-
-    # These only work on Home page (anchors).
     if st.sidebar.button("Home", use_container_width=True):
         st.session_state["page"] = "home"
         st.rerun()
     st.sidebar.markdown("[About](#about)")
     st.sidebar.markdown("[Modules](#modules)")
     st.sidebar.markdown("[Proceed](#proceed)")
-
     st.sidebar.divider()
     if st.sidebar.button("Close", use_container_width=True):
         st.session_state["menu_open"] = False
         st.rerun()
 
-def hero_section(section_id: str, kicker: str, title: str, sub: str, show_cta: bool = False):
+def footer_template():
+    st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div style="border-top:1px solid rgba(255,255,255,0.10); padding-top:18px; padding-bottom:10px;">
+          <div style="display:flex; flex-wrap:wrap; gap:40px; justify-content:space-between;">
+            <div style="min-width:220px;">
+              <div style="font-weight:900; letter-spacing:0.5px;">© 2026 YOUR GROUP / SCHOOL</div>
+              <div style="opacity:0.75; margin-top:10px;">Replace this footer with your group details.</div>
+            </div>
+
+            <div style="min-width:220px;">
+              <div style="font-weight:900; margin-bottom:10px;">PROJECT</div>
+              <div style="opacity:0.85; line-height:1.9;">
+                <div>About</div>
+                <div>Modules</div>
+                <div>Documentation</div>
+                <div>Contact</div>
+              </div>
+            </div>
+
+            <div style="min-width:220px;">
+              <div style="font-weight:900; margin-bottom:10px;">POLICY</div>
+              <div style="opacity:0.85; line-height:1.9;">
+                <div>Privacy Policy</div>
+                <div>Terms of Use</div>
+                <div>Cookie Policy</div>
+                <div>Data Deletion Request</div>
+              </div>
+            </div>
+
+            <div style="min-width:220px;">
+              <div style="font-weight:900; margin-bottom:10px;">SOCIALS</div>
+              <div style="opacity:0.85; line-height:1.9;">
+                <div>Facebook</div>
+                <div>Instagram</div>
+                <div>Email</div>
+                <div>GitHub</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:18px; opacity:0.65; font-size:12px;">
+            Template only. You will replace names/links with your own.
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+def goto_protected(target_page: str):
+    if st.session_state["authed"]:
+        st.session_state["page"] = target_page
+    else:
+        st.session_state["page"] = "auth"
+    st.rerun()
+
+def hero_section(section_id: str, kicker: str, title: str, sub: str):
     img = HERO_IMAGES.get(section_id, "")
     st.markdown(f'<a id="{section_id}"></a>', unsafe_allow_html=True)
-
     st.markdown(
         f"""
         <div class="hero">
@@ -186,19 +230,46 @@ def hero_section(section_id: str, kicker: str, title: str, sub: str, show_cta: b
         unsafe_allow_html=True,
     )
 
-    if show_cta:
-        st.markdown('<div class="landing-root">', unsafe_allow_html=True)
-        c1, c2 = st.columns([1, 1])
-        with c1:
-            if st.button("PROCEED TO LOGIN / SIGN UP", use_container_width=True):
-                st.session_state["page"] = "auth"
-                st.rerun()
-        with c2:
-            if st.session_state["authed"]:
-                if st.button("GO TO QUICK ACCESS", use_container_width=True):
-                    st.session_state["page"] = "dashboard"
-                    st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
+def modules_showcase():
+    # Title is already rendered by hero section, here we show the 3 feature cards.
+    st.markdown("<div class='landing-root'>", unsafe_allow_html=True)
+    c1, c2, c3 = st.columns(3)
+
+    with c1:
+        st.markdown(
+            "<div class='auth-card'><b>EV Smart Routing</b><div class='small-muted' style='margin-top:8px;'>Map + ETA (prototype)</div></div>",
+            unsafe_allow_html=True,
+        )
+        if st.button("Open EV Smart Routing", use_container_width=True, key="mod_ev"):
+            goto_protected("ev")
+
+    with c2:
+        st.markdown(
+            "<div class='auth-card'><b>Sales Forecasting</b><div class='small-muted' style='margin-top:8px;'>Actual vs forecast (prototype)</div></div>",
+            unsafe_allow_html=True,
+        )
+        if st.button("Open Sales Forecasting", use_container_width=True, key="mod_sales"):
+            goto_protected("sales")
+
+    with c3:
+        st.markdown(
+            "<div class='auth-card'><b>Parts Procurement</b><div class='small-muted' style='margin-top:8px;'>Stock vs demand (prototype)</div></div>",
+            unsafe_allow_html=True,
+        )
+        if st.button("Open Parts Procurement", use_container_width=True, key="mod_parts"):
+            goto_protected("parts")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+def proceed_cta():
+    # Button directly under the text, not isolated at the bottom.
+    st.markdown("<div class='landing-root'>", unsafe_allow_html=True)
+    c1, c2, c3 = st.columns([1, 2, 1])
+    with c2:
+        if st.button("PROCEED TO LOGIN / SIGN UP", use_container_width=True, key="proceed_btn"):
+            st.session_state["page"] = "auth"
+            st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 def home_page():
     sidebar_menu()
@@ -208,32 +279,32 @@ def home_page():
         "TOYOTA",
         "Decision Support System",
         "EV smart routing, sales forecasting, and parts procurement in one consistent prototype dashboard.",
-        show_cta=False,
     )
 
     hero_section(
         "about",
         "ABOUT",
         "What this prototype does",
-        "A Web-based Decision Support System for users who want to utilize their Electric Vehicles(EV) to their full potential.",
-        show_cta=False,
+        "A web-based decision support prototype demonstrating EV operations planning and analytics modules with a consistent UI.",
     )
 
     hero_section(
         "modules",
         "MODULES",
         "Core features",
-        "EV Smart Routing, Sales Forecasting, and Parts Procurement. Data/models are mock for now.",
-        show_cta=False,
+        "Select a module below. If you're not logged in, you'll be redirected to Login / Sign Up.",
     )
+    modules_showcase()
 
     hero_section(
         "proceed",
         "PROCEED",
         "Login / Register",
         "Register your EV and access the prototype modules.",
-        show_cta=True,
     )
+    proceed_cta()
+
+    footer_template()
 
 def auth_page():
     @st.dialog("Privacy Disclosure")
