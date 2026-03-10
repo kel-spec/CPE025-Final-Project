@@ -1,6 +1,5 @@
 :root{
   --bg:#0B0E13;
-  --card:rgba(255,255,255,0.05);
   --border:rgba(255,255,255,0.12);
   --text:rgba(255,255,255,0.92);
   --muted:rgba(255,255,255,0.72);
@@ -8,148 +7,212 @@
   --brand2:#1F3B55;
 }
 
-/* Full-width landing; remove the “cut” feel */
-html, body { background: var(--bg); }
-.block-container{
-  max-width: 1400px;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-}
+html, body { background: var(--bg); color: var(--text); }
 header[data-testid="stHeader"]{ background: transparent; }
 
-/* Hide Streamlit default hamburger/sidebar controls */
-section[data-testid="stSidebar"], button[data-testid="collapsedControl"]{
-  display:none !important;
+/* Layout */
+.block-container{
+  max-width: 1320px;
+  padding-top: 10px;
+  padding-bottom: 30px;
 }
 
-/* Generic */
 .small-muted{ color: var(--muted); font-size: 13px; }
 hr { border-color: var(--border); }
 
-/* ---------- Landing (Bugatti-ish) ---------- */
-.landing{ margin-top: 0; }
+/* Hide Streamlit default sidebar toggle button */
+button[data-testid="collapsedControl"]{ display:none !important; }
 
-/* Fixed top bar */
-.l-topbar{
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  height: 64px;
-  z-index: 999;
-  background: rgba(11,14,19,0.55);
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  backdrop-filter: blur(10px);
+/* ---------- Shared Header (every page) ---------- */
+.dss-topbar{
+  background: linear-gradient(90deg, var(--brand2), var(--brand));
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin: 0 0 12px 0;
 }
-.l-topbar-inner{
-  height: 64px;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 18px;
+
+.dss-topbar-row{
   display:flex;
   align-items:center;
   justify-content:space-between;
+  gap: 12px;
 }
-.l-logo{
+
+.dss-brand{
   display:flex;
   align-items:center;
   gap: 10px;
-  letter-spacing: 0.6px;
   font-weight: 900;
+  letter-spacing:0.5px;
 }
-.l-mark{
-  width: 34px; height: 34px;
+
+.dss-brand-badge{
+  width: 34px;
+  height: 34px;
   border-radius: 10px;
   background: rgba(255,255,255,0.10);
-  display:flex; align-items:center; justify-content:center;
-  font-weight: 900;
-}
-
-/* Make sure Streamlit hamburger button is not under the fixed topbar */
-.hamburger-spacer{
-  height: 72px;
-}
-
-/* Drawer overlay */
-.drawer-backdrop{
-  position: fixed;
-  inset: 0;
-  z-index: 998;
-  background: rgba(0,0,0,0.55);
-  backdrop-filter: blur(6px);
-}
-.drawer{
-  position: fixed;
-  top: 0;
-  right: 0;
-  width: 360px;
-  height: 100vh;
-  z-index: 1000;
-  background: rgba(12,16,23,0.96);
-  border-left: 1px solid rgba(255,255,255,0.10);
-  padding: 18px;
-}
-.drawer h3{ margin: 6px 0 10px 0; }
-.drawer a{
-  display:block;
-  color: rgba(255,255,255,0.90);
-  text-decoration: none;
-  padding: 10px 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.03);
-  margin-bottom: 10px;
-}
-.drawer a:hover{ background: rgba(255,255,255,0.06); }
-
-/* Full-height sections */
-.l-section{
-  position: relative;
-  min-height: 100vh;
   display:flex;
-  align-items:flex-end;
-  padding: 110px 18px 46px 18px; /* pushed lower */
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-  background-size: cover;
-  background-position: center;
-}
-.l-section::before{
-  content:"";
-  position:absolute; inset:0;
-  background: radial-gradient(1200px 600px at 25% 30%, rgba(0,0,0,0.15), rgba(0,0,0,0.55)),
-              linear-gradient(90deg, rgba(11,14,19,0.85) 0%, rgba(11,14,19,0.55) 55%, rgba(11,14,19,0.25) 100%);
-}
-.l-content{
-  position: relative;
-  max-width: 1400px;
-  margin: 0 auto;
-  width: 100%;
-  display:grid;
-  grid-template-columns: 1.2fr 0.8fr;
-  gap: 18px;
-  align-items:end;
-}
-.l-kicker{
+  align-items:center;
+  justify-content:center;
   font-weight: 900;
-  letter-spacing: 0.4px;
-  opacity: 0.9;
 }
-.l-title{
-  font-size: 56px;
+
+.dss-title{
+  font-size: 26px;
+  font-weight: 900;
+  margin-top: 6px;
+}
+
+.dss-sub{
+  margin-top: 2px;
+  color: rgba(255,255,255,0.80);
+  font-size: 14px;
+}
+
+/* ---------- Top nav as TEXT with underline (no pills, no circles) ---------- */
+.topnav div[role="radiogroup"]{
+  display:flex !important;
+  align-items:center;
+  gap: 22px;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin-top: 4px;
+}
+
+.topnav div[role="radiogroup"] > label{
+  margin: 0 !important;
+  padding: 0 !important;
+  display:inline-flex !important;
+  align-items:center !important;
+}
+
+/* hide radio input */
+.topnav div[role="radiogroup"] > label > input{
+  position:absolute !important;
+  opacity:0 !important;
+  width:0 !important;
+  height:0 !important;
+}
+
+/* label text container */
+.topnav div[role="radiogroup"] > label > div{
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.3px;
+  color: rgba(255,255,255,0.78) !important;
+}
+
+/* active underline */
+.topnav div[role="radiogroup"] > label:has(input:checked) > div{
+  color: rgba(255,255,255,0.96) !important;
+  border-bottom: 2px solid rgba(255,255,255,0.80) !important;
+  padding-bottom: 6px !important;
+}
+
+/* ---------- Menu button ---------- */
+.menu-btn .stButton button{
+  border-radius: 10px !important;
+  border: 1px solid rgba(255,255,255,0.16) !important;
+  background: rgba(255,255,255,0.04) !important;
+  font-weight: 900 !important;
+}
+.menu-btn .stButton button:hover{
+  background: rgba(255,255,255,0.07) !important;
+}
+
+/* ---------- Landing / hero sections ---------- */
+.landing-root .stButton button{
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,0.70) !important;
+  background: transparent !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.6px;
+}
+.landing-root .stButton button:hover{
+  background: rgba(255,255,255,0.08) !important;
+}
+
+.hero{
+  position: relative;
+  min-height: 86vh;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 14px;
+
+  /* fallback if image fails */
+  background: radial-gradient(900px 500px at 50% 35%, rgba(255,255,255,0.06), rgba(0,0,0,0.65)),
+              linear-gradient(180deg, rgba(20,24,32,0.85), rgba(5,6,8,0.92));
+}
+
+/* actual image layer */
+.hero img{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit: cover;
+  object-position:center;
+  filter: contrast(1.05) saturate(1.05);
+  opacity: 0.85;
+}
+
+/* dark overlay for readability */
+.hero::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background: radial-gradient(1000px 600px at 50% 35%, rgba(0,0,0,0.25), rgba(0,0,0,0.72)),
+              linear-gradient(90deg, rgba(0,0,0,0.55), rgba(0,0,0,0.35));
+}
+
+/* centered content */
+.hero-content{
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  min-height: 86vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding: 26px;
+}
+
+.hero-inner{
+  max-width: 980px;
+}
+
+.hero-kicker{
+  font-weight: 900;
+  letter-spacing: 0.6px;
+  opacity: 0.85;
+}
+
+.hero-title{
+  font-size: 62px;
   font-weight: 950;
-  line-height: 1.02;
+  line-height: 1.0;
   margin-top: 10px;
 }
-.l-sub{
-  margin-top: 10px;
-  max-width: 58ch;
-  color: rgba(255,255,255,0.75);
+
+.hero-sub{
+  margin: 14px auto 0 auto;
+  max-width: 70ch;
+  color: rgba(255,255,255,0.80);
   font-size: 15px;
 }
-.l-panel{
-  background: rgba(12,16,23,0.70);
-  border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 14px;
-  padding: 16px;
-  backdrop-filter: blur(10px);
+
+.hero-cta{
+  margin-top: 22px;
+  display:flex;
+  gap: 12px;
+  justify-content:center;
+  flex-wrap:wrap;
 }
 
 /* Auth card */
@@ -162,49 +225,6 @@ hr { border-color: var(--border); }
 }
 .auth-title{ font-size: 26px; font-weight: 900; margin-bottom: 6px; }
 .auth-sub{ opacity: 0.75; margin-bottom: 12px; }
+
 .stTextInput input, .stSelectbox select{ border-radius: 6px !important; }
 .stButton button{ border-radius: 8px !important; }
-
-/* Logged-in top shell */
-.dss-topbar{
-  background: linear-gradient(90deg, var(--brand2), var(--brand));
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 14px;
-  padding: 12px 16px;
-  margin: 12px 0 12px 0;
-}
-.dss-topbar-row{ display:flex; align-items:center; justify-content:space-between; gap: 12px; }
-.dss-brand{ display:flex; align-items:center; gap: 10px; font-weight: 800; letter-spacing:0.4px; }
-.dss-brand-badge{
-  width: 34px; height: 34px; border-radius: 10px;
-  background: rgba(255,255,255,0.10);
-  display:flex; align-items:center; justify-content:center;
-  font-weight: 900;
-}
-.dss-title{ font-size: 26px; font-weight: 900; margin-top: 6px; }
-.dss-sub{ margin-top: 2px; color: rgba(255,255,255,0.80); font-size: 14px; }
-
-/* Nav pills only for app nav */
-.dss-nav div[role="radiogroup"]{
-  display:flex !important;
-  flex-wrap:wrap;
-  gap:10px;
-  align-items:center;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 14px;
-  padding: 10px 12px;
-}
-.dss-nav div[role="radiogroup"] > label{ margin:0 !important; padding:0 !important; display:inline-flex !important; }
-.dss-nav div[role="radiogroup"] > label > input{ position:absolute !important; opacity:0 !important; width:0 !important; height:0 !important; }
-.dss-nav div[role="radiogroup"] > label > div{
-  padding: 10px 14px !important;
-  border-radius: 12px !important;
-  border: 1px solid rgba(255,255,255,0.10) !important;
-  background: rgba(255,255,255,0.02) !important;
-  font-weight: 800 !important;
-}
-.dss-nav div[role="radiogroup"] > label:has(input:checked) > div{
-  background: rgba(43,75,106,0.85) !important;
-  border: 1px solid rgba(255,255,255,0.16) !important;
-}
