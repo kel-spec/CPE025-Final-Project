@@ -112,6 +112,7 @@ def tabs_nav():
         st.button("Log out", on_click=logout, use_container_width=True)
 
 def landing_topbar():
+    # Fixed top bar (visual)
     st.markdown(
         """
         <div class="l-topbar">
@@ -120,14 +121,16 @@ def landing_topbar():
               <div class="l-mark">T</div>
               <div>TOYOTA</div>
             </div>
+            <div class="l-hamburger-slot"></div>
           </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    # Put the hamburger as a Streamlit button aligned to the topbar area.
-    # This is the cleanest way to toggle state without JS.
+    # Clickable hamburger rendered by Streamlit, positioned BELOW the fixed bar
+    # so it is not blocked by the fixed div overlay.
+    st.markdown('<div class="hamburger-spacer"></div>', unsafe_allow_html=True)
     colA, colB = st.columns([6, 1])
     with colB:
         if st.button("☰", use_container_width=True, key="menu_btn"):
