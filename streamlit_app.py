@@ -23,13 +23,13 @@ EV_OPTIONS = [
     "Other (EV)",
 ]
 
-# Static hero images (Unsplash “source” URLs; replace later with your own hosted images)
-HERO_IMAGES = [
-    "https://source.unsplash.com/2400x1400/?electric,car",
-    "https://source.unsplash.com/2400x1400/?ev,car",
-    "https://source.unsplash.com/2400x1400/?tesla,car",
-    "https://source.unsplash.com/2400x1400/?charging,station",
-]
+# Static section images (replace later with your own hosted EV images)
+SECTION_BG = {
+    "home": "https://source.unsplash.com/2400x1400/?electric,car",
+    "about": "https://source.unsplash.com/2400x1400/?ev,charging",
+    "modules": "https://source.unsplash.com/2400x1400/?electric,vehicle",
+    "proceed": "https://source.unsplash.com/2400x1400/?charging,station,night",
+}
 
 PRIVACY_TEXT = """
 ## Privacy Disclosure (Prototype)
@@ -50,100 +50,8 @@ If you want your data deleted, contact the system administrator.
 """
 
 def load_css():
-    try:
-        with open("assets/theme.css", "r", encoding="utf-8") as f:
-            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-    except FileNotFoundError:
-        pass
-
-    # Minimal auth card styling (cleaner, less round)
-    st.markdown(
-        """
-        <style>
-        .block-container{max-width:1180px;}
-
-        .auth-card{
-          background: rgba(10,12,16,0.72);
-          border: 1px solid rgba(255,255,255,0.10);
-          border-radius: 10px;
-          padding: 18px;
-          backdrop-filter: blur(8px);
-        }
-        .auth-title{font-size:26px;font-weight:800;margin-bottom:6px;}
-        .auth-sub{opacity:0.75;margin-bottom:14px;}
-
-        .stTextInput input, .stSelectbox select{ border-radius: 6px !important; }
-        .stButton button{ border-radius: 6px !important; }
-
-        /* Landing */
-        .landing-wrap{ padding-top: 14px; }
-        .hero{
-          border-radius: 16px;
-          border: 1px solid rgba(255,255,255,0.10);
-          overflow: hidden;
-          min-height: 520px;
-          position: relative;
-          background-size: cover;
-          background-position: center;
-        }
-        .hero::before{
-          content:"";
-          position:absolute; inset:0;
-          background: linear-gradient(90deg, rgba(10,12,16,0.88) 0%, rgba(10,12,16,0.55) 55%, rgba(10,12,16,0.25) 100%);
-        }
-        .hero-inner{
-          position: relative;
-          padding: 26px;
-          display:grid;
-          grid-template-columns: 1.1fr 0.9fr;
-          gap: 18px;
-        }
-        .hero-brand{
-          font-weight: 800;
-          letter-spacing: 0.4px;
-          opacity: 0.9;
-        }
-        .hero-title{
-          font-size: 44px;
-          font-weight: 900;
-          line-height: 1.05;
-          margin-top: 12px;
-        }
-        .hero-sub{
-          margin-top: 10px;
-          opacity: 0.78;
-          max-width: 52ch;
-        }
-        .hero-cta{ margin-top: 18px; display:flex; gap:10px; flex-wrap:wrap; }
-        .section{
-          margin-top: 18px;
-          border: 1px solid rgba(255,255,255,0.10);
-          border-radius: 16px;
-          background: rgba(255,255,255,0.03);
-          overflow: hidden;
-        }
-        .section-h{
-          padding: 12px 16px;
-          background: rgba(43,75,106,0.40);
-          border-bottom: 1px solid rgba(255,255,255,0.08);
-          font-weight: 900;
-        }
-        .section-b{ padding: 16px; }
-        .mini-card{
-          border: 1px solid rgba(255,255,255,0.10);
-          border-radius: 14px;
-          background: rgba(255,255,255,0.03);
-          padding: 14px;
-          height: 100%;
-        }
-
-        /* Anchor offset so headings aren’t hidden */
-        .anchor{ position: relative; top: -10px; }
-
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
+    with open("assets/theme.css", "r", encoding="utf-8") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 def init_state():
     st.session_state.setdefault("authed", False)
@@ -151,13 +59,14 @@ def init_state():
     st.session_state.setdefault("page", "dashboard")
     st.session_state.setdefault("privacy_ack", False)
     st.session_state.setdefault("route", "landing")  # landing | auth | app
-    st.session_state.setdefault("hero_idx", 0)
+    st.session_state.setdefault("menu_open", False)
 
 def logout():
     st.session_state["authed"] = False
     st.session_state["user"] = None
     st.session_state["page"] = "dashboard"
     st.session_state["route"] = "landing"
+    st.session_state["menu_open"] = False
     st.rerun()
 
 def top_shell():
@@ -202,129 +111,132 @@ def tabs_nav():
     with cols[1]:
         st.button("Log out", on_click=logout, use_container_width=True)
 
-def landing_sidebar():
-    with st.sidebar:
-        with st.expander("Menu", expanded=True):
-            st.markdown(
-                """
-                - [Home](#home)
-                - [About](#about)
-                - [Modules](#modules)
-                - [Proceed](#proceed)
-                """,
-                unsafe_allow_html=True,
-            )
-        st.divider()
-        st.caption("Prototype landing page. Replace images later with your own EV assets.")
+def landing_topbar():
+    st.markdown(
+        """
+        <div class="l-topbar">
+          <div class="l-topbar-inner">
+            <div class="l-logo">
+              <div class="l-mark">T</div>
+              <div>TOYOTA</div>
+            </div>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-def landing_page():
-    landing_sidebar()
-
-    # rotate hero image (manual)
-    c1, c2, c3 = st.columns([1, 1, 4])
-    with c1:
-        if st.button("◀", use_container_width=True):
-            st.session_state["hero_idx"] = (st.session_state["hero_idx"] - 1) % len(HERO_IMAGES)
-            st.rerun()
-    with c2:
-        if st.button("▶", use_container_width=True):
-            st.session_state["hero_idx"] = (st.session_state["hero_idx"] + 1) % len(HERO_IMAGES)
+    # Put the hamburger as a Streamlit button aligned to the topbar area.
+    # This is the cleanest way to toggle state without JS.
+    colA, colB = st.columns([6, 1])
+    with colB:
+        if st.button("☰", use_container_width=True, key="menu_btn"):
+            st.session_state["menu_open"] = True
             st.rerun()
 
-    hero_url = HERO_IMAGES[st.session_state["hero_idx"]]
+def drawer_menu():
+    if not st.session_state["menu_open"]:
+        return
 
-    st.markdown('<div class="landing-wrap">', unsafe_allow_html=True)
+    st.markdown('<div class="drawer-backdrop"></div>', unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class="drawer">
+          <h3>Menu</h3>
+          <a href="#home">Home</a>
+          <a href="#about">About</a>
+          <a href="#modules">Modules</a>
+          <a href="#proceed">Proceed</a>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    st.markdown('<div class="anchor" id="home"></div>', unsafe_allow_html=True)
+    # close button rendered in Streamlit for state change
+    if st.button("Close Menu", use_container_width=True, key="close_menu"):
+        st.session_state["menu_open"] = False
+        st.rerun()
+
+def section(section_id: str, kicker: str, title: str, sub: str, right_panel: str | None = None, proceed_btn: bool = False):
+    bg = SECTION_BG[section_id]
+    st.markdown(f'<a id="{section_id}"></a>', unsafe_allow_html=True)
     st.markdown(
         f"""
-        <div class="hero" style="background-image:url('{hero_url}')">
-          <div class="hero-inner">
+        <div class="l-section" style="background-image:url('{bg}')">
+          <div class="l-content">
             <div>
-              <div class="hero-brand">TOYOTA</div>
-              <div class="hero-title">Decision Support System</div>
-              <div class="hero-sub">
-                EV smart routing, sales forecasting, and parts procurement in one unified dashboard.
-              </div>
-              <div class="hero-cta">
-                <span style="opacity:0.75;">Scroll to learn more or proceed now.</span>
-              </div>
+              <div class="l-kicker">{kicker}</div>
+              <div class="l-title">{title}</div>
+              <div class="l-sub">{sub}</div>
             </div>
-            <div class="auth-card">
-              <div class="auth-title">Proceed</div>
-              <div class="auth-sub">Login or register your electric vehicle.</div>
+            <div class="l-panel">
+              {right_panel or ""}
+            </div>
+          </div>
+        </div>
         """,
         unsafe_allow_html=True,
     )
 
-    b1, b2 = st.columns(2)
-    with b1:
-        if st.button("Go to Login / Sign Up", use_container_width=True):
-            st.session_state["route"] = "auth"
-            st.rerun()
-    with b2:
-        if st.button("Open Dashboard (Demo)", use_container_width=True):
-            # Only works if already authed; otherwise goes to auth
-            if st.session_state["authed"]:
-                st.session_state["route"] = "app"
-            else:
+    if proceed_btn:
+        c1, c2 = st.columns([1, 1])
+        with c1:
+            if st.button("Proceed to Login / Sign Up", use_container_width=True):
                 st.session_state["route"] = "auth"
-            st.rerun()
+                st.session_state["menu_open"] = False
+                st.rerun()
+        with c2:
+            if st.button("Open Dashboard (if logged in)", use_container_width=True):
+                if st.session_state["authed"]:
+                    st.session_state["route"] = "app"
+                else:
+                    st.session_state["route"] = "auth"
+                st.session_state["menu_open"] = False
+                st.rerun()
 
-    st.markdown(
-        """
-            </div>
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+def landing_page():
+    landing_topbar()
+    drawer_menu()
+
+    st.markdown('<div class="landing">', unsafe_allow_html=True)
+
+    section(
+        "home",
+        "TOYOTA",
+        "Decision Support System",
+        "EV smart routing, sales forecasting, and parts procurement in one consistent prototype dashboard.",
+        right_panel="<b>Explore</b><br><span style='opacity:0.75'>Use the menu to navigate sections.</span>"
     )
 
-    st.markdown('<div class="anchor" id="about"></div>', unsafe_allow_html=True)
-    st.markdown(
-        """
-        <div class="section">
-          <div class="section-h">About</div>
-          <div class="section-b">
-            This prototype demonstrates a decision support web application for EV operations:
-            routing support, forecasting, and procurement insights in a consistent interface.
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    section(
+        "about",
+        "ABOUT",
+        "What this prototype does",
+        "A web-based decision support prototype that demonstrates EV operations planning and analytics modules with a consistent UI.",
+        right_panel="<b>Goal</b><br><span style='opacity:0.75'>Support operational decisions using dashboards and forecasts.</span>"
     )
 
-    st.markdown('<div class="anchor" id="modules"></div>', unsafe_allow_html=True)
-    st.markdown(
+    section(
+        "modules",
+        "MODULES",
+        "Core features",
+        "Routing support, forecasting visuals, and inventory/procurement insights. Data and models are mock for now.",
+        right_panel="""
+        <b>Included</b><br>
+        <span style='opacity:0.75'>• EV Smart Routing</span><br>
+        <span style='opacity:0.75'>• Sales Forecasting</span><br>
+        <span style='opacity:0.75'>• Parts Procurement</span>
         """
-        <div class="section">
-          <div class="section-h">Modules</div>
-          <div class="section-b">
-        """,
-        unsafe_allow_html=True,
     )
-    m1, m2, m3 = st.columns(3)
-    with m1:
-        st.markdown('<div class="mini-card"><b>EV Smart Routing</b><br><span style="opacity:0.75">Map + ETA (prototype)</span></div>', unsafe_allow_html=True)
-    with m2:
-        st.markdown('<div class="mini-card"><b>Sales Forecasting</b><br><span style="opacity:0.75">Actual vs forecast (prototype)</span></div>', unsafe_allow_html=True)
-    with m3:
-        st.markdown('<div class="mini-card"><b>Parts Procurement</b><br><span style="opacity:0.75">Stock vs demand (prototype)</span></div>', unsafe_allow_html=True)
-    st.markdown("</div></div>", unsafe_allow_html=True)
 
-    st.markdown('<div class="anchor" id="proceed"></div>', unsafe_allow_html=True)
-    st.markdown(
-        """
-        <div class="section">
-          <div class="section-h">Proceed</div>
-          <div class="section-b">
-        """,
-        unsafe_allow_html=True,
+    section(
+        "proceed",
+        "PROCEED",
+        "Login / Register",
+        "Register your EV and access the prototype modules.",
+        right_panel="<b>Next</b><br><span style='opacity:0.75'>Proceed to authentication.</span>",
+        proceed_btn=True
     )
-    if st.button("Proceed to Login / Sign Up", use_container_width=True):
-        st.session_state["route"] = "auth"
-        st.rerun()
-    st.markdown("</div></div>", unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -339,15 +251,13 @@ def auth_screen():
                 st.session_state["privacy_ack"] = True
                 st.rerun()
 
-    # back to landing
-    top = st.columns([1, 4])
+    top = st.columns([1, 6])
     with top[0]:
         if st.button("← Back", use_container_width=True):
             st.session_state["route"] = "landing"
             st.rerun()
 
-    left, right, pad = st.columns([3, 2, 0.2], vertical_alignment="top")
-
+    left, right = st.columns([3, 2], vertical_alignment="top")
     with right:
         st.markdown('<div class="auth-card">', unsafe_allow_html=True)
         st.markdown('<div class="auth-title">Login</div>', unsafe_allow_html=True)
@@ -374,16 +284,9 @@ def auth_screen():
             last_name = st.text_input("Last Name", key="su_last")
             username = st.text_input("Username", key="su_user")
             email = st.text_input("Email", key="su_email")
-
             password = st.text_input("Password", type="password", key="su_pass")
             confirm = st.text_input("Confirm Password", type="password", key="su_pass2")
-
-            vehicle_type = st.selectbox(
-                "Select Which type of Vehicle",
-                EV_OPTIONS,
-                index=0,
-                key="su_vehicle",
-            )
+            vehicle_type = st.selectbox("Select Which type of Vehicle", EV_OPTIONS, key="su_vehicle")
 
             if st.button("View Privacy Disclosure", use_container_width=True):
                 privacy_modal()
@@ -394,11 +297,6 @@ def auth_screen():
                 disabled=not st.session_state["privacy_ack"],
                 key="su_privacy",
             )
-
-            if st.session_state["privacy_ack"]:
-                st.caption("Privacy disclosure acknowledged.")
-            else:
-                st.caption("Open the disclosure and click “I Understand” to continue.")
 
             if st.button("Sign Up", use_container_width=True):
                 if password != confirm:
@@ -440,7 +338,6 @@ def main():
     ensure_default_admin()
     init_state()
 
-    # Routing
     if st.session_state["route"] == "landing":
         landing_page()
         return
@@ -449,7 +346,6 @@ def main():
         auth_screen()
         return
 
-    # App (logged in)
     if not st.session_state["authed"]:
         st.session_state["route"] = "auth"
         auth_screen()
