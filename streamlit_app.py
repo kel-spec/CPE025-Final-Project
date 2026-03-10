@@ -4,12 +4,6 @@ from modules.db import init_db
 from modules import dashboard, ev_routing, sales_forecasting, parts_procurement
 
 APP_TITLE = "Toyota Decision Support System"
-PAGES = {
-    "dashboard": "Quick Access",
-    "ev": "EV Smart Routing",
-    "sales": "Sales Forecasting",
-    "parts": "Parts Procurement",
-}
 
 EV_OPTIONS = [
     "Toyota bZ4X",
@@ -23,12 +17,13 @@ EV_OPTIONS = [
     "Other (EV)",
 ]
 
-# Static section images (replace later with your own hosted EV images)
+# Use direct image URLs (more reliable than "source.unsplash.com")
+# Replace later with your own images in /assets and use st.image or base64.
 SECTION_BG = {
-    "home": "https://source.unsplash.com/2400x1400/?electric,car",
-    "about": "https://source.unsplash.com/2400x1400/?ev,charging",
-    "modules": "https://source.unsplash.com/2400x1400/?electric,vehicle",
-    "proceed": "https://source.unsplash.com/2400x1400/?charging,station,night",
+    "home": "https://images.unsplash.com/photo-1619767886558-efdc259cde1a?auto=format&fit=crop&w=2400&q=80",
+    "about": "https://images.unsplash.com/photo-1611843467160-25afb8df1074?auto=format&fit=crop&w=2400&q=80",
+    "modules": "https://images.unsplash.com/photo-1609520505218-7421b92a1f8a?auto=format&fit=crop&w=2400&q=80",
+    "proceed": "https://images.unsplash.com/photo-1617886322009-6f0bb0b1f3d3?auto=format&fit=crop&w=2400&q=80",
 }
 
 PRIVACY_TEXT = """
@@ -56,23 +51,14 @@ def load_css():
 def init_state():
     st.session_state.setdefault("authed", False)
     st.session_state.setdefault("user", None)
-    st.session_state.setdefault("page", "dashboard")
+    st.session_state.setdefault("page", "home")      # home | auth | dashboard | ev | sales | parts
     st.session_state.setdefault("privacy_ack", False)
-    st.session_state.setdefault("route", "landing")  # landing | auth | app
     st.session_state.setdefault("menu_open", False)
-
-def logout():
-    st.session_state["authed"] = False
-    st.session_state["user"] = None
-    st.session_state["page"] = "dashboard"
-    st.session_state["route"] = "landing"
-    st.session_state["menu_open"] = False
-    st.rerun()
 
 def top_shell():
     user = st.session_state.get("user")
     uname = user["username"] if user else "Users"
-    role = user["role"] if user else ""
+    role = user["role"] if user else "guest"
 
     st.markdown(
         f"""
@@ -83,7 +69,7 @@ def top_shell():
               <div>TOYOTA</div>
             </div>
             <div style="text-align:right">
-              <div class="small-muted">Welcome, {uname}! {f"({role})" if role else ""}</div>
+              <div class="small-muted">Welcome, {uname}! ({role})</div>
             </div>
           </div>
           <div class="dss-title">{APP_TITLE}</div>
@@ -93,55 +79,60 @@ def top_shell():
         unsafe_allow_html=True,
     )
 
-def tabs_nav():
-    cols = st.columns([4, 1])
+def nav_bar():
+    # Different options depending on login state
+    if st.session_state["authed"]:
+        nav = {
+            "home": "Home",
+            "dashboard": "Quick Access",
+            "ev": "EV Smart Routing",
+            "sales": "Sales Forecasting",
+            "parts": "Parts Procurement",
+        }
+    else:
+        nav = {
+            "home": "Home",
+            "auth": "Login / Sign Up",
+        }
+
+    cols = st.columns([5, 1, 1])
     with cols[0]:
         st.markdown('<div class="dss-nav">', unsafe_allow_html=True)
         current = st.session_state["page"]
+        # If current is not available (e.g., user logged out), default to home
+        if current not in nav:
+            current = "home"
+            st.session_state["page"] = "home"
         selection = st.radio(
             "Navigation",
-            options=list(PAGES.keys()),
-            index=list(PAGES.keys()).index(current),
-            format_func=lambda k: PAGES[k],
+            options=list(nav.keys()),
+            index=list(nav.keys()).index(current),
+            format_func=lambda k: nav[k],
             horizontal=True,
             label_visibility="collapsed",
         )
         st.markdown("</div>", unsafe_allow_html=True)
         st.session_state["page"] = selection
+
     with cols[1]:
-        st.button("Log out", on_click=logout, use_container_width=True)
-
-def landing_topbar():
-    # Fixed top bar (visual)
-    st.markdown(
-        """
-        <div class="l-topbar">
-          <div class="l-topbar-inner">
-            <div class="l-logo">
-              <div class="l-mark">T</div>
-              <div>TOYOTA</div>
-            </div>
-            <div class="l-hamburger-slot"></div>
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    # Clickable hamburger rendered by Streamlit, positioned BELOW the fixed bar
-    # so it is not blocked by the fixed div overlay.
-    st.markdown('<div class="hamburger-spacer"></div>', unsafe_allow_html=True)
-    colA, colB = st.columns([6, 1])
-    with colB:
-        if st.button("☰", use_container_width=True, key="menu_btn"):
+        if st.button("☰ Menu", use_container_width=True):
             st.session_state["menu_open"] = True
             st.rerun()
+
+    with cols[2]:
+        if st.session_state["authed"]:
+            if st.button("Log out", use_container_width=True):
+                st.session_state["authed"] = False
+                st.session_state["user"] = None
+                st.session_state["page"] = "home"
+                st.session_state["menu_open"] = False
+                st.rerun()
 
 def drawer_menu():
     if not st.session_state["menu_open"]:
         return
 
-    st.markdown('<div class="drawer-backdrop"></div>', unsafe_allow_html=True)
+    # Drawer content (anchors work on Home page)
     st.markdown(
         """
         <div class="drawer">
@@ -155,17 +146,19 @@ def drawer_menu():
         unsafe_allow_html=True,
     )
 
-    # close button rendered in Streamlit for state change
-    if st.button("Close Menu", use_container_width=True, key="close_menu"):
+    # Real close button (not trapped)
+    if st.button("Close Menu", use_container_width=True):
         st.session_state["menu_open"] = False
         st.rerun()
 
-def section(section_id: str, kicker: str, title: str, sub: str, right_panel: str | None = None, proceed_btn: bool = False):
-    bg = SECTION_BG[section_id]
+def landing_section(section_id: str, kicker: str, title: str, sub: str, right_panel_html: str):
+    img = SECTION_BG[section_id]
     st.markdown(f'<a id="{section_id}"></a>', unsafe_allow_html=True)
     st.markdown(
         f"""
-        <div class="l-section" style="background-image:url('{bg}')">
+        <div class="l-section">
+          <img class="l-bg" src="{img}" alt="{section_id}" />
+          <div class="l-overlay"></div>
           <div class="l-content">
             <div>
               <div class="l-kicker">{kicker}</div>
@@ -173,7 +166,7 @@ def section(section_id: str, kicker: str, title: str, sub: str, right_panel: str
               <div class="l-sub">{sub}</div>
             </div>
             <div class="l-panel">
-              {right_panel or ""}
+              {right_panel_html}
             </div>
           </div>
         </div>
@@ -181,69 +174,61 @@ def section(section_id: str, kicker: str, title: str, sub: str, right_panel: str
         unsafe_allow_html=True,
     )
 
-    if proceed_btn:
-        c1, c2 = st.columns([1, 1])
-        with c1:
-            if st.button("Proceed to Login / Sign Up", use_container_width=True):
-                st.session_state["route"] = "auth"
-                st.session_state["menu_open"] = False
-                st.rerun()
-        with c2:
-            if st.button("Open Dashboard (if logged in)", use_container_width=True):
-                if st.session_state["authed"]:
-                    st.session_state["route"] = "app"
-                else:
-                    st.session_state["route"] = "auth"
-                st.session_state["menu_open"] = False
-                st.rerun()
-
-def landing_page():
-    landing_topbar()
+def home_page():
     drawer_menu()
 
-    st.markdown('<div class="landing">', unsafe_allow_html=True)
-
-    section(
+    landing_section(
         "home",
         "TOYOTA",
         "Decision Support System",
         "EV smart routing, sales forecasting, and parts procurement in one consistent prototype dashboard.",
-        right_panel="<b>Explore</b><br><span style='opacity:0.75'>Use the menu to navigate sections.</span>"
+        "<b>Purpose</b><br><span style='opacity:0.75'>Operational decision support for EV workflows.</span>",
     )
 
-    section(
+    landing_section(
         "about",
         "ABOUT",
         "What this prototype does",
         "A web-based decision support prototype that demonstrates EV operations planning and analytics modules with a consistent UI.",
-        right_panel="<b>Goal</b><br><span style='opacity:0.75'>Support operational decisions using dashboards and forecasts.</span>"
+        "<b>Scope</b><br><span style='opacity:0.75'>Routing + Forecasting + Procurement.</span>",
     )
 
-    section(
+    landing_section(
         "modules",
         "MODULES",
         "Core features",
         "Routing support, forecasting visuals, and inventory/procurement insights. Data and models are mock for now.",
-        right_panel="""
+        """
         <b>Included</b><br>
         <span style='opacity:0.75'>• EV Smart Routing</span><br>
         <span style='opacity:0.75'>• Sales Forecasting</span><br>
         <span style='opacity:0.75'>• Parts Procurement</span>
-        """
+        """,
     )
 
-    section(
+    # Proceed section with real buttons
+    landing_section(
         "proceed",
         "PROCEED",
         "Login / Register",
         "Register your EV and access the prototype modules.",
-        right_panel="<b>Next</b><br><span style='opacity:0.75'>Proceed to authentication.</span>",
-        proceed_btn=True
+        "<b>Next</b><br><span style='opacity:0.75'>Proceed to authentication.</span>",
     )
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    c1, c2 = st.columns([1, 1])
+    with c1:
+        if st.button("Proceed to Login / Sign Up", use_container_width=True):
+            st.session_state["page"] = "auth"
+            st.session_state["menu_open"] = False
+            st.rerun()
+    with c2:
+        if st.session_state["authed"]:
+            if st.button("Go to Quick Access", use_container_width=True):
+                st.session_state["page"] = "dashboard"
+                st.session_state["menu_open"] = False
+                st.rerun()
 
-def auth_screen():
+def auth_page():
     @st.dialog("Privacy Disclosure")
     def privacy_modal():
         st.markdown(PRIVACY_TEXT)
@@ -254,11 +239,7 @@ def auth_screen():
                 st.session_state["privacy_ack"] = True
                 st.rerun()
 
-    top = st.columns([1, 6])
-    with top[0]:
-        if st.button("← Back", use_container_width=True):
-            st.session_state["route"] = "landing"
-            st.rerun()
+    drawer_menu()
 
     left, right = st.columns([3, 2], vertical_alignment="top")
     with right:
@@ -277,7 +258,7 @@ def auth_screen():
                     st.session_state["authed"] = True
                     st.session_state["user"] = user
                     st.session_state["page"] = "dashboard"
-                    st.session_state["route"] = "app"
+                    st.session_state["menu_open"] = False
                     st.rerun()
                 else:
                     st.error("Invalid username/password.")
@@ -321,8 +302,11 @@ def auth_screen():
 
         st.markdown("</div>", unsafe_allow_html=True)
 
-def render_page():
+def app_pages():
+    drawer_menu()
+
     page = st.session_state["page"]
+
     if page == "dashboard":
         dashboard.render()
     elif page == "ev":
@@ -332,7 +316,7 @@ def render_page():
     elif page == "parts":
         parts_procurement.render()
     else:
-        dashboard.render()
+        home_page()
 
 def main():
     st.set_page_config(page_title=f"{APP_TITLE} (Prototype)", layout="wide")
@@ -341,23 +325,25 @@ def main():
     ensure_default_admin()
     init_state()
 
-    if st.session_state["route"] == "landing":
-        landing_page()
-        return
-
-    if st.session_state["route"] == "auth" and not st.session_state["authed"]:
-        auth_screen()
-        return
-
-    if not st.session_state["authed"]:
-        st.session_state["route"] = "auth"
-        auth_screen()
-        return
-
-    st.session_state["route"] = "app"
     top_shell()
-    tabs_nav()
-    render_page()
+    nav_bar()
+
+    # Page router
+    if st.session_state["page"] == "home":
+        home_page()
+        return
+
+    if st.session_state["page"] == "auth":
+        auth_page()
+        return
+
+    # Protected pages
+    if not st.session_state["authed"]:
+        st.session_state["page"] = "auth"
+        auth_page()
+        return
+
+    app_pages()
 
 if __name__ == "__main__":
     main()
