@@ -1,164 +1,219 @@
-/* Dim, clean, consistent UI like your reference */
-
 :root{
-  --bg:#0E1117;
-  --panel:#111827;
-  --panel2:#0F172A;
-  --card:rgba(255,255,255,0.04);
-  --border:rgba(255,255,255,0.10);
-  --muted:rgba(255,255,255,0.70);
+  --bg:#0B0E13;
+  --card:rgba(255,255,255,0.05);
+  --border:rgba(255,255,255,0.12);
   --text:rgba(255,255,255,0.92);
+  --muted:rgba(255,255,255,0.72);
   --brand:#2B4B6A;
   --brand2:#1F3B55;
 }
 
-html, body, [class*="css"]{ color: var(--text); }
-
+/* Full-width landing; remove the “cut” feel */
+html, body { background: var(--bg); }
 .block-container{
-  max-width: 1180px;
-  padding-top: 14px;
-  padding-bottom: 36px;
+  max-width: 1400px;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+header[data-testid="stHeader"]{ background: transparent; }
+
+/* Hide Streamlit default hamburger/sidebar controls */
+section[data-testid="stSidebar"], button[data-testid="collapsedControl"]{
+  display:none !important;
 }
 
+/* Generic */
+.small-muted{ color: var(--muted); font-size: 13px; }
 hr { border-color: var(--border); }
 
-/* Top header bar */
+/* ---------- Landing (Bugatti-ish) ---------- */
+.landing{
+  margin-top: 0;
+}
+
+/* Fixed top bar */
+.l-topbar{
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 64px;
+  z-index: 999;
+  background: rgba(11,14,19,0.55);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(10px);
+}
+.l-topbar-inner{
+  height: 64px;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 18px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.l-logo{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  letter-spacing: 0.6px;
+  font-weight: 900;
+}
+.l-mark{
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.10);
+  display:flex; align-items:center; justify-content:center;
+  font-weight: 900;
+}
+.l-btn{
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.04);
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor:pointer;
+  color: var(--text);
+  font-weight: 800;
+}
+
+/* Drawer overlay */
+.drawer-backdrop{
+  position: fixed;
+  inset: 0;
+  z-index: 998;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(6px);
+}
+.drawer{
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 360px;
+  height: 100vh;
+  z-index: 1000;
+  background: rgba(12,16,23,0.96);
+  border-left: 1px solid rgba(255,255,255,0.10);
+  padding: 18px;
+}
+.drawer h3{ margin: 6px 0 10px 0; }
+.drawer a{
+  display:block;
+  color: rgba(255,255,255,0.90);
+  text-decoration: none;
+  padding: 10px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  margin-bottom: 10px;
+}
+.drawer a:hover{ background: rgba(255,255,255,0.06); }
+.drawer .close{
+  margin-top: 10px;
+}
+
+/* Full-height sections */
+.l-section{
+  position: relative;
+  min-height: 100vh;
+  display:flex;
+  align-items:flex-end;
+  padding: 92px 18px 46px 18px; /* top includes fixed bar */
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background-size: cover;
+  background-position: center;
+}
+.l-section::before{
+  content:"";
+  position:absolute; inset:0;
+  background: radial-gradient(1200px 600px at 25% 30%, rgba(0,0,0,0.15), rgba(0,0,0,0.55)),
+              linear-gradient(90deg, rgba(11,14,19,0.85) 0%, rgba(11,14,19,0.55) 55%, rgba(11,14,19,0.25) 100%);
+}
+.l-content{
+  position: relative;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  display:grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 18px;
+  align-items:end;
+}
+.l-kicker{
+  font-weight: 900;
+  letter-spacing: 0.4px;
+  opacity: 0.9;
+}
+.l-title{
+  font-size: 56px;
+  font-weight: 950;
+  line-height: 1.02;
+  margin-top: 10px;
+}
+.l-sub{
+  margin-top: 10px;
+  max-width: 58ch;
+  color: rgba(255,255,255,0.75);
+  font-size: 15px;
+}
+.l-panel{
+  background: rgba(12,16,23,0.70);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 14px;
+  padding: 16px;
+  backdrop-filter: blur(10px);
+}
+
+/* Make the auth card simpler */
+.auth-card{
+  background: rgba(12,16,23,0.70);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 12px;
+  padding: 16px;
+  backdrop-filter: blur(10px);
+}
+.auth-title{ font-size: 26px; font-weight: 900; margin-bottom: 6px; }
+.auth-sub{ opacity: 0.75; margin-bottom: 12px; }
+.stTextInput input, .stSelectbox select{ border-radius: 6px !important; }
+.stButton button{ border-radius: 8px !important; }
+
+/* Logged-in top shell stays same as before */
 .dss-topbar{
   background: linear-gradient(90deg, var(--brand2), var(--brand));
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 14px;
   padding: 12px 16px;
-  margin-bottom: 12px;
+  margin: 12px 0 12px 0;
 }
-.dss-topbar-row{
-  display:flex; align-items:center; justify-content:space-between; gap: 12px;
-}
-.dss-brand{
-  display:flex; align-items:center; gap: 10px;
-  font-weight: 700; letter-spacing: 0.5px;
-}
+.dss-topbar-row{ display:flex; align-items:center; justify-content:space-between; gap: 12px; }
+.dss-brand{ display:flex; align-items:center; gap: 10px; font-weight: 800; letter-spacing:0.4px; }
 .dss-brand-badge{
   width: 34px; height: 34px; border-radius: 10px;
   background: rgba(255,255,255,0.10);
   display:flex; align-items:center; justify-content:center;
-  font-weight: 800;
+  font-weight: 900;
 }
-.dss-title{ font-size: 26px; font-weight: 800; margin-top: 6px; }
+.dss-title{ font-size: 26px; font-weight: 900; margin-top: 6px; }
 .dss-sub{ margin-top: 2px; color: rgba(255,255,255,0.80); font-size: 14px; }
 
+/* Nav pills only for app nav */
 .dss-nav div[role="radiogroup"]{
-  display: flex !important;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
+  display:flex !important;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
   background: rgba(255,255,255,0.03);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255,255,255,0.10);
   border-radius: 14px;
   padding: 10px 12px;
 }
-.dss-nav div[role="radiogroup"] > label{
-  display: inline-flex !important;
-  align-items: center !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-.dss-nav div[role="radiogroup"] > label > input[type="radio"]{
-  position: absolute !important;
-  opacity: 0 !important;
-  width: 0 !important;
-  height: 0 !important;
-  pointer-events: none !important;
-}
+.dss-nav div[role="radiogroup"] > label{ margin:0 !important; padding:0 !important; display:inline-flex !important; }
+.dss-nav div[role="radiogroup"] > label > input{ position:absolute !important; opacity:0 !important; width:0 !important; height:0 !important; }
 .dss-nav div[role="radiogroup"] > label > div{
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
   padding: 10px 14px !important;
   border-radius: 12px !important;
   border: 1px solid rgba(255,255,255,0.10) !important;
   background: rgba(255,255,255,0.02) !important;
-  line-height: 1 !important;
-  min-height: 42px !important;
-  font-weight: 700 !important;
+  font-weight: 800 !important;
 }
 .dss-nav div[role="radiogroup"] > label:has(input:checked) > div{
   background: rgba(43,75,106,0.85) !important;
   border: 1px solid rgba(255,255,255,0.16) !important;
-}
-
-/* Cards / sections */
-.dss-card{
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 14px;
-}
-.dss-card-tight{
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 12px;
-}
-.dss-section{
-  background: rgba(255,255,255,0.02);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  overflow:hidden;
-  margin-top: 14px;
-}
-.dss-section-head{
-  background: rgba(43,75,106,0.50);
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  padding: 10px 14px;
-  font-weight: 800;
-  letter-spacing: 0.2px;
-}
-.dss-section-body{ padding: 14px; }
-
-.small-muted{ color: var(--muted); font-size: 13px; }
-
-/* Inputs */
-.stTextInput input, .stSelectbox select, .stNumberInput input{
-  border-radius: 10px !important;
-}
-
-/* Buttons */
-.stButton button{
-  border-radius: 10px !important;
-  border: 1px solid rgba(255,255,255,0.14) !important;
-  background: rgba(255,255,255,0.03) !important;
-}
-.stButton button:hover{
-  background: rgba(255,255,255,0.06) !important;
-}
-
-/* Metrics */
-div[data-testid="stMetric"]{
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 10px 12px;
-}
-
-/* Login layout */
-.dss-auth-wrap{ max-width: 520px; margin: 18px auto 0 auto; }
-.dss-auth-head{
-  background: rgba(43,75,106,0.55);
-  border: 1px solid rgba(255,255,255,0.10);
-  border-bottom: none;
-  border-radius: 14px 14px 0 0;
-  padding: 10px 14px;
-  font-weight: 900;
-  text-align:center;
-}
-.dss-auth-body{
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 0 0 14px 14px;
-  padding: 14px;
-}
-
-.auth-card [data-testid="stMarkdownContainer"]:empty,
-.auth-card [data-testid="stMarkdownContainer"] > p:empty{
-  display: none !important;
 }
