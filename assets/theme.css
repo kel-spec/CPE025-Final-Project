@@ -10,7 +10,6 @@
 html, body { background: var(--bg); color: var(--text); }
 header[data-testid="stHeader"]{ background: transparent; }
 
-/* Layout */
 .block-container{
   max-width: 1320px;
   padding-top: 10px;
@@ -20,10 +19,7 @@ header[data-testid="stHeader"]{ background: transparent; }
 .small-muted{ color: var(--muted); font-size: 13px; }
 hr { border-color: var(--border); }
 
-/* Hide Streamlit default sidebar toggle button */
-button[data-testid="collapsedControl"]{ display:none !important; }
-
-/* ---------- Shared Header (every page) ---------- */
+/* ---------- Shared Header ---------- */
 .dss-topbar{
   background: linear-gradient(90deg, var(--brand2), var(--brand));
   border: 1px solid rgba(255,255,255,0.08);
@@ -70,7 +66,7 @@ button[data-testid="collapsedControl"]{ display:none !important; }
   font-size: 14px;
 }
 
-/* ---------- Top nav as TEXT with underline (no pills, no circles) ---------- */
+/* ---------- Top nav as text underline ---------- */
 .topnav div[role="radiogroup"]{
   display:flex !important;
   align-items:center;
@@ -88,7 +84,6 @@ button[data-testid="collapsedControl"]{ display:none !important; }
   align-items:center !important;
 }
 
-/* hide radio input */
 .topnav div[role="radiogroup"] > label > input{
   position:absolute !important;
   opacity:0 !important;
@@ -96,7 +91,6 @@ button[data-testid="collapsedControl"]{ display:none !important; }
   height:0 !important;
 }
 
-/* label text container */
 .topnav div[role="radiogroup"] > label > div{
   background: transparent !important;
   border: none !important;
@@ -106,50 +100,24 @@ button[data-testid="collapsedControl"]{ display:none !important; }
   color: rgba(255,255,255,0.78) !important;
 }
 
-/* active underline */
 .topnav div[role="radiogroup"] > label:has(input:checked) > div{
   color: rgba(255,255,255,0.96) !important;
   border-bottom: 2px solid rgba(255,255,255,0.80) !important;
   padding-bottom: 6px !important;
 }
 
-/* ---------- Menu button ---------- */
-.menu-btn .stButton button{
-  border-radius: 10px !important;
-  border: 1px solid rgba(255,255,255,0.16) !important;
-  background: rgba(255,255,255,0.04) !important;
-  font-weight: 900 !important;
-}
-.menu-btn .stButton button:hover{
-  background: rgba(255,255,255,0.07) !important;
-}
-
-/* ---------- Landing / hero sections ---------- */
-.landing-root .stButton button{
-  border-radius: 999px !important;
-  border: 1px solid rgba(255,255,255,0.70) !important;
-  background: transparent !important;
-  font-weight: 900 !important;
-  letter-spacing: 0.6px;
-}
-.landing-root .stButton button:hover{
-  background: rgba(255,255,255,0.08) !important;
-}
-
+/* ---------- Hero sections ---------- */
 .hero{
   position: relative;
-  min-height: 86vh;
+  min-height: 82vh;
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 16px;
   overflow: hidden;
   margin-bottom: 14px;
-
-  /* fallback if image fails */
   background: radial-gradient(900px 500px at 50% 35%, rgba(255,255,255,0.06), rgba(0,0,0,0.65)),
               linear-gradient(180deg, rgba(20,24,32,0.85), rgba(5,6,8,0.92));
 }
 
-/* actual image layer */
 .hero img{
   position:absolute;
   inset:0;
@@ -161,7 +129,6 @@ button[data-testid="collapsedControl"]{ display:none !important; }
   opacity: 0.85;
 }
 
-/* dark overlay for readability */
 .hero::after{
   content:"";
   position:absolute;
@@ -170,12 +137,11 @@ button[data-testid="collapsedControl"]{ display:none !important; }
               linear-gradient(90deg, rgba(0,0,0,0.55), rgba(0,0,0,0.35));
 }
 
-/* centered content */
 .hero-content{
   position: relative;
   z-index: 2;
   height: 100%;
-  min-height: 86vh;
+  min-height: 82vh;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -183,9 +149,7 @@ button[data-testid="collapsedControl"]{ display:none !important; }
   padding: 26px;
 }
 
-.hero-inner{
-  max-width: 980px;
-}
+.hero-inner{ max-width: 980px; }
 
 .hero-kicker{
   font-weight: 900;
@@ -194,7 +158,7 @@ button[data-testid="collapsedControl"]{ display:none !important; }
 }
 
 .hero-title{
-  font-size: 62px;
+  font-size: 58px;
   font-weight: 950;
   line-height: 1.0;
   margin-top: 10px;
@@ -207,12 +171,21 @@ button[data-testid="collapsedControl"]{ display:none !important; }
   font-size: 15px;
 }
 
-.hero-cta{
-  margin-top: 22px;
-  display:flex;
-  gap: 12px;
-  justify-content:center;
-  flex-wrap:wrap;
+/* ---------- Cards ---------- */
+.card{
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.card-title{ font-weight: 900; margin-top: 8px; }
+.card-sub{ opacity: 0.75; margin-top: 6px; font-size: 13px; }
+
+.card-media{
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.10);
 }
 
 /* Auth card */
