@@ -208,33 +208,31 @@ def footer_block():
           <div class="footer-grid">
             <div>
               <div class="footer-brand">© 2026 YOUR GROUP / SCHOOL</div>
-              <div class="footer-note">
-                Template footer. Replace titles/links with your group details.
-              </div>
+              <div class="footer-note">Replace this footer with your group details.</div>
             </div>
 
             <div>
               <div class="footer-col-title">PROJECT</div>
-              <a class="footer-link" href="#">About</a>
-              <a class="footer-link" href="#">Modules</a>
-              <a class="footer-link" href="#">Documentation</a>
-              <a class="footer-link" href="#">Contact</a>
+              <div class="footer-link">About</div>
+              <div class="footer-link">Modules</div>
+              <div class="footer-link">Documentation</div>
+              <div class="footer-link">Contact</div>
             </div>
 
             <div>
               <div class="footer-col-title">POLICY</div>
-              <a class="footer-link" href="#">Privacy Policy</a>
-              <a class="footer-link" href="#">Terms of Use</a>
-              <a class="footer-link" href="#">Cookie Policy</a>
-              <a class="footer-link" href="#">Data Deletion Request</a>
+              <div class="footer-link">Privacy Policy</div>
+              <div class="footer-link">Terms of Use</div>
+              <div class="footer-link">Cookie Policy</div>
+              <div class="footer-link">Data Deletion Request</div>
             </div>
 
             <div>
               <div class="footer-col-title">SOCIALS</div>
-              <a class="footer-link" href="#">Facebook</a>
-              <a class="footer-link" href="#">Instagram</a>
-              <a class="footer-link" href="#">Email</a>
-              <a class="footer-link" href="#">GitHub</a>
+              <div class="footer-link">Facebook</div>
+              <div class="footer-link">Instagram</div>
+              <div class="footer-link">Email</div>
+              <div class="footer-link">GitHub</div>
             </div>
           </div>
 
@@ -246,7 +244,7 @@ def footer_block():
               <span class="footer-pill">yt</span>
               <span class="footer-pill">fb</span>
             </div>
-            <div>Template only. Replace names/links with your own.</div>
+            <div>Template only. Replace names with your own.</div>
           </div>
         </div>
         """,
