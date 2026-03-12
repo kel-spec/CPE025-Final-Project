@@ -252,19 +252,18 @@ def footer_block():
     <div class="site-footer">
       <div class="footer-grid">
         <div>
-          <div class="footer-brand">© 2026 CPE025 Group — Technological Institute of the Philippines</div>
+          <div class="footer-brand">© Technological Institute of the Philippines</div>
           <div class="footer-note">
-            Toyota Decision Support System — a web-based decision support tool for EV routing,
-            sales forecasting, and parts procurement analytics.
+            Toyota Decision Support System made by Group 4.
           </div>
         </div>
 
         <div>
           <div class="footer-col-title">PROJECT</div>
           <div class="footer-link">Overview</div>
-          <div class="footer-link">System Modules</div>
-          <div class="footer-link">Methodology</div>
-          <div class="footer-link">Contact the Team</div>
+          <div class="footer-link">EV routing</div>
+          <div class="footer-link">Sales Forecasting</div>
+          <div class="footer-link">Parts Procurement</div>
         </div>
 
         <div>
@@ -277,22 +276,16 @@ def footer_block():
 
         <div>
           <div class="footer-col-title">SOCIALS</div>
-          <div class="footer-link">Facebook: @CPE025Group</div>
-          <div class="footer-link">Instagram: @CPE025Group</div>
-          <div class="footer-link">Email: cpe025.group@sample.com</div>
           <div class="footer-link">GitHub: github.com/kel-spec/CPE025-Final-Project</div>
         </div>
       </div>
 
       <div class="footer-bottom">
         <div class="footer-social">
-          <span class="footer-pill">in</span>
-          <span class="footer-pill">ig</span>
-          <span class="footer-pill">x</span>
-          <span class="footer-pill">yt</span>
-          <span class="footer-pill">fb</span>
+          <span class="footer-pill">T</span>
+          <span class="footer-pill">I</span>
+          <span class="footer-pill">P/span>
         </div>
-        <div>Demo footer text — replace with your real group details.</div>
       </div>
     </div>
     """
