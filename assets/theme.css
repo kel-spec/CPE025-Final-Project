@@ -263,3 +263,13 @@ section[data-testid="stSidebar"] *{
   opacity: 0.72;
   font-size: 13px;
 }
+
+/* =========================
+   FIX: remove the weird empty pill at top of Login page
+   ========================= */
+.page-auth div[data-testid="stVerticalBlock"]:first-child{
+  display: none !important;
+}
+.page-auth div[data-testid="stAppViewContainer"] > .main > div:first-child{
+  padding-top: 0 !important;
+}
