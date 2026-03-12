@@ -20,13 +20,13 @@ EV_OPTIONS = [
     "Other (EV)",
 ]
 
-# Local hero images (you created this folder)
+# Local hero images 
 HOME_HERO = "assets/hero/home.jpg"
 ABOUT_BG = "assets/hero/about.jpg"
 FEATURES_BG = "assets/hero/features.jpg"
 PROCEED_BG = "assets/hero/proceed.jpg"
 
-# Local feature images (create these)
+# Local feature iamges
 FEATURE_MEDIA = {
     "ev": "assets/features/ev.jpg",
     "sales": "assets/features/sales.jpg",
