@@ -20,13 +20,11 @@ EV_OPTIONS = [
     "Other (EV)",
 ]
 
-# Local hero images
 HOME_HERO = "assets/hero/home.jpg"
 ABOUT_BG = "assets/hero/about.jpg"
 FEATURES_BG = "assets/hero/features.jpg"
 PROCEED_BG = "assets/hero/proceed.jpg"
 
-# Local feature images (home page cards)
 FEATURE_MEDIA = {
     "ev": "assets/features/ev.jpg",
     "sales": "assets/features/sales.jpg",
@@ -55,7 +53,7 @@ def _b64_file(path: str) -> str | None:
 def src_for_image(path: str) -> str:
     b64 = _b64_file(path)
     if not b64:
-        return ""  # gradient fallback
+        return ""
     ext = "jpg"
     if path.lower().endswith(".png"):
         ext = "png"
@@ -95,11 +93,6 @@ def header_shell():
 
 
 def sidebar_panel():
-    """
-    Sidebar role change:
-    - Not navigation (tabs handle navigation)
-    - Use for: Account, System health, Exports (placeholder), Session actions
-    """
     st.sidebar.markdown("## Panel")
     st.sidebar.caption("Account • Status • Utilities")
 
@@ -110,7 +103,6 @@ def sidebar_panel():
         email = user.get("email", "—")
         vehicle_type = user.get("vehicle_type", "—")
 
-        # Account
         st.sidebar.markdown(
             f"""
             <div class="sidebar-card">
@@ -124,7 +116,6 @@ def sidebar_panel():
             unsafe_allow_html=True,
         )
 
-        # System health
         st.sidebar.markdown(
             """
             <div class="sidebar-card" style="margin-top:10px;">
@@ -138,7 +129,6 @@ def sidebar_panel():
             unsafe_allow_html=True,
         )
 
-        # Exports (placeholder)
         st.sidebar.markdown(
             """
             <div class="sidebar-card" style="margin-top:10px;">
@@ -152,7 +142,6 @@ def sidebar_panel():
 
         st.sidebar.markdown("### Session actions")
         if st.sidebar.button("Clear UI cache (refresh)", use_container_width=True):
-            # safe UI refresh only
             st.cache_data.clear()
             st.cache_resource.clear()
             st.rerun()
@@ -173,17 +162,7 @@ def sidebar_panel():
             """,
             unsafe_allow_html=True,
         )
-        st.sidebar.markdown(
-            """
-            <div class="sidebar-card" style="margin-top:10px;">
-              <div class="sidebar-label">What you can do</div>
-              <div class="sidebar-muted">• View overview</div>
-              <div class="sidebar-muted">• Read about modules</div>
-              <div class="sidebar-muted">• Proceed to registration</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+
         if st.sidebar.button("Go to Login / Sign Up", use_container_width=True):
             st.session_state["guest_tab"] = "Login / Sign Up"
             st.rerun()
@@ -216,6 +195,59 @@ def feature_card(img_path: str, title: str, sub: str):
           <div class="card-media"><img src="{src}" alt="{title}" /></div>
           <div class="card-title">{title}</div>
           <div class="card-sub">{sub}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def footer_block():
+    st.markdown(
+        """
+        <div class="site-footer">
+          <div class="footer-grid">
+            <div>
+              <div class="footer-brand">© 2026 YOUR GROUP / SCHOOL</div>
+              <div class="footer-note">
+                Template footer. Replace titles/links with your group details.
+              </div>
+            </div>
+
+            <div>
+              <div class="footer-col-title">PROJECT</div>
+              <a class="footer-link" href="#">About</a>
+              <a class="footer-link" href="#">Modules</a>
+              <a class="footer-link" href="#">Documentation</a>
+              <a class="footer-link" href="#">Contact</a>
+            </div>
+
+            <div>
+              <div class="footer-col-title">POLICY</div>
+              <a class="footer-link" href="#">Privacy Policy</a>
+              <a class="footer-link" href="#">Terms of Use</a>
+              <a class="footer-link" href="#">Cookie Policy</a>
+              <a class="footer-link" href="#">Data Deletion Request</a>
+            </div>
+
+            <div>
+              <div class="footer-col-title">SOCIALS</div>
+              <a class="footer-link" href="#">Facebook</a>
+              <a class="footer-link" href="#">Instagram</a>
+              <a class="footer-link" href="#">Email</a>
+              <a class="footer-link" href="#">GitHub</a>
+            </div>
+          </div>
+
+          <div class="footer-bottom">
+            <div class="footer-social">
+              <span class="footer-pill">in</span>
+              <span class="footer-pill">ig</span>
+              <span class="footer-pill">x</span>
+              <span class="footer-pill">yt</span>
+              <span class="footer-pill">fb</span>
+            </div>
+            <div>Template only. Replace names/links with your own.</div>
+          </div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -259,13 +291,7 @@ def home_page():
         PROCEED_BG,
     )
 
-    mid = st.columns([1, 2, 1])[1]
-    with mid:
-        st.markdown('<div class="btn-ghost">', unsafe_allow_html=True)
-        if st.button("GO TO LOGIN / SIGN UP", use_container_width=True, key="go_login"):
-            st.session_state["guest_tab"] = "Login / Sign Up"
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
+    footer_block()
 
 
 def auth_page():
@@ -359,12 +385,9 @@ def main():
     sidebar_panel()
     header_shell()
 
-    # Guest: smooth Home/Login tabs
     if not st.session_state.get("authed"):
-        st.session_state.setdefault("guest_tab", "Home")
         tabs = st.tabs(["Home", "Login / Sign Up"])
-
-        if st.session_state["guest_tab"] == "Login / Sign Up":
+        if st.session_state.get("guest_tab") == "Login / Sign Up":
             with tabs[0]:
                 home_page()
             with tabs[1]:
@@ -376,17 +399,9 @@ def main():
                 auth_page()
         return
 
-    # Logged-in: smooth module tabs
     app_tabs = st.tabs(
-        [
-            "Dashboard",
-            "EV Smart Routing",
-            "Sales Forecasting",
-            "Parts Procurement",
-            "Profile",
-        ]
+        ["Dashboard", "EV Smart Routing", "Sales Forecasting", "Parts Procurement", "Profile"]
     )
-
     with app_tabs[0]:
         dashboard.render()
     with app_tabs[1]:
