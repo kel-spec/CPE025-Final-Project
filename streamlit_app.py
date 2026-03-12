@@ -207,32 +207,35 @@ def footer_block():
         <div class="site-footer">
           <div class="footer-grid">
             <div>
-              <div class="footer-brand">© 2026 YOUR GROUP / SCHOOL</div>
-              <div class="footer-note">Replace this footer with your group details.</div>
+              <div class="footer-brand">© 2026 CPE025 Group — Technological Institute of the Philippines</div>
+              <div class="footer-note">
+                Toyota Decision Support System — a web-based decision support tool for EV routing,
+                sales forecasting, and parts procurement analytics.
+              </div>
             </div>
 
             <div>
               <div class="footer-col-title">PROJECT</div>
-              <div class="footer-link">About</div>
-              <div class="footer-link">Modules</div>
-              <div class="footer-link">Documentation</div>
-              <div class="footer-link">Contact</div>
+              <div class="footer-link">Overview</div>
+              <div class="footer-link">System Modules</div>
+              <div class="footer-link">Methodology</div>
+              <div class="footer-link">Contact the Team</div>
             </div>
 
             <div>
               <div class="footer-col-title">POLICY</div>
-              <div class="footer-link">Privacy Policy</div>
+              <div class="footer-link">Privacy Disclosure</div>
               <div class="footer-link">Terms of Use</div>
-              <div class="footer-link">Cookie Policy</div>
+              <div class="footer-link">Cookie Notice</div>
               <div class="footer-link">Data Deletion Request</div>
             </div>
 
             <div>
               <div class="footer-col-title">SOCIALS</div>
-              <div class="footer-link">Facebook</div>
-              <div class="footer-link">Instagram</div>
-              <div class="footer-link">Email</div>
-              <div class="footer-link">GitHub</div>
+              <div class="footer-link">Facebook: @CPE025Group</div>
+              <div class="footer-link">Instagram: @CPE025Group</div>
+              <div class="footer-link">Email: cpe025.group@sample.com</div>
+              <div class="footer-link">GitHub: github.com/kel-spec/CPE025-Final-Project</div>
             </div>
           </div>
 
@@ -244,7 +247,7 @@ def footer_block():
               <span class="footer-pill">yt</span>
               <span class="footer-pill">fb</span>
             </div>
-            <div>Template only. Replace names with your own.</div>
+            <div>Demo footer text — replace with your real group details.</div>
           </div>
         </div>
         """,
