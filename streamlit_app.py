@@ -55,7 +55,7 @@ def _b64_file(path: str) -> str | None:
 def src_for_image(path: str) -> str:
     b64 = _b64_file(path)
     if not b64:
-        return ""  # shows gradient fallback
+        return ""  # gradient fallback
     ext = "jpg"
     if path.lower().endswith(".png"):
         ext = "png"
@@ -65,7 +65,7 @@ def src_for_image(path: str) -> str:
 def init_state():
     st.session_state.setdefault("authed", False)
     st.session_state.setdefault("user", None)
-    st.session_state.setdefault("page", "home")  # home | auth | dashboard | ev | sales | parts
+    st.session_state.setdefault("page", "dashboard")  # used only when authed
     st.session_state.setdefault("privacy_ack", False)
 
 
@@ -92,46 +92,6 @@ def header_shell():
         """,
         unsafe_allow_html=True,
     )
-
-
-def top_nav():
-    if st.session_state.get("authed"):
-        nav = [
-            ("home", "Home"),
-            ("dashboard", "Dashboard"),
-            ("ev", "EV Smart Routing"),
-            ("sales", "Sales Forecasting"),
-            ("parts", "Parts Procurement"),
-        ]
-    else:
-        nav = [
-            ("home", "Home"),
-            ("auth", "Login / Sign Up"),
-        ]
-
-    current = st.session_state.get("page", "home")
-
-    st.markdown('<div class="navbar">', unsafe_allow_html=True)
-    cols = st.columns(len(nav) + (1 if st.session_state.get("authed") else 0))
-
-    for i, (key, label) in enumerate(nav):
-        with cols[i]:
-            cls = "navbtn-active" if key == current else "navbtn"
-            st.markdown(f'<div class="{cls}">', unsafe_allow_html=True)
-            if st.button(label, use_container_width=True, key=f"nav_{key}"):
-                st.session_state["page"] = key
-                st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-
-    if st.session_state.get("authed"):
-        with cols[-1]:
-            if st.button("Log out", use_container_width=True, key="nav_logout"):
-                st.session_state["authed"] = False
-                st.session_state["user"] = None
-                st.session_state["page"] = "home"
-                st.rerun()
-
-    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def sidebar_panel():
@@ -170,43 +130,27 @@ def sidebar_panel():
             st.session_state["page"] = "parts"
             st.rerun()
 
-        st.sidebar.markdown("### Status (mock)")
-        st.sidebar.markdown(
-            """
-            <div class="sidebar-card">
-              <div class="sidebar-label">System</div>
-              <div class="sidebar-muted">Sales model: configured</div>
-              <div class="sidebar-muted">Last update: —</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
         if st.sidebar.button("Log out", use_container_width=True):
             st.session_state["authed"] = False
             st.session_state["user"] = None
-            st.session_state["page"] = "home"
             st.rerun()
     else:
         st.sidebar.markdown(
             """
             <div class="sidebar-card">
               <div class="sidebar-label">Guest</div>
-              <div class="sidebar-muted">Log in to access modules and your profile.</div>
+              <div class="sidebar-muted">Use the Home/Login tabs in the main page.</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
-        if st.sidebar.button("Login / Sign Up", use_container_width=True):
-            st.session_state["page"] = "auth"
-            st.rerun()
 
 
 def goto_protected(target_page: str):
     if st.session_state.get("authed"):
         st.session_state["page"] = target_page
     else:
-        st.session_state["page"] = "auth"
+        st.session_state["guest_tab"] = "Login / Sign Up"
     st.rerun()
 
 
@@ -261,7 +205,7 @@ def home_page():
     hero_section(
         "FEATURES",
         "Core features",
-        "Open a module below. If you're not logged in, you'll be redirected to Login / Sign Up.",
+        "Open a module below. If you're not logged in, switch to the Login / Sign Up tab.",
         FEATURES_BG,
     )
 
@@ -291,15 +235,13 @@ def home_page():
     mid = st.columns([1, 2, 1])[1]
     with mid:
         st.markdown('<div class="btn-ghost">', unsafe_allow_html=True)
-        if st.button("PROCEED TO LOGIN / SIGN UP", use_container_width=True, key="proceed_login"):
-            st.session_state["page"] = "auth"
+        if st.button("GO TO LOGIN / SIGN UP", use_container_width=True, key="go_login"):
+            st.session_state["guest_tab"] = "Login / Sign Up"
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
 
 def auth_page():
-    st.markdown('<div class="page-auth">', unsafe_allow_html=True)
-
     @st.dialog("Privacy Disclosure")
     def privacy_modal():
         st.markdown(PRIVACY_TEXT)
@@ -308,71 +250,92 @@ def auth_page():
             st.session_state["privacy_ack"] = True
             st.rerun()
 
-    left, right = st.columns([3, 2], vertical_alignment="top")
-    with right:
-        st.markdown('<div class="auth-card">', unsafe_allow_html=True)
-        st.markdown('<div class="auth-title">Login</div>', unsafe_allow_html=True)
-        st.markdown('<div class="auth-sub">Sign in or register your electric vehicle.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="auth-card">', unsafe_allow_html=True)
+    st.markdown('<div class="auth-title">Login</div>', unsafe_allow_html=True)
+    st.markdown('<div class="auth-sub">Sign in or register your electric vehicle.</div>', unsafe_allow_html=True)
 
-        tab1, tab2 = st.tabs(["Sign In", "Sign Up"])
+    tab1, tab2 = st.tabs(["Sign In", "Sign Up"])
 
-        with tab1:
-            username = st.text_input("Username", key="li_user")
-            password = st.text_input("Password", type="password", key="li_pass")
-            if st.button("Sign In", use_container_width=True):
-                ok, user = authenticate(username, password)
+    with tab1:
+        username = st.text_input("Username", key="li_user")
+        password = st.text_input("Password", type="password", key="li_pass")
+        if st.button("Sign In", use_container_width=True):
+            ok, user = authenticate(username, password)
+            if ok:
+                st.session_state["authed"] = True
+                st.session_state["user"] = user
+                st.session_state["page"] = "dashboard"
+                st.rerun()
+            else:
+                st.error("Invalid username/password.")
+
+    with tab2:
+        first_name = st.text_input("First Name", key="su_first")
+        last_name = st.text_input("Last Name", key="su_last")
+        username = st.text_input("Username", key="su_user")
+        email = st.text_input("Email", key="su_email")
+        password = st.text_input("Password", type="password", key="su_pass")
+        confirm = st.text_input("Confirm Password", type="password", key="su_pass2")
+        vehicle_type = st.selectbox("Select Which type of Vehicle", EV_OPTIONS, key="su_vehicle")
+
+        if st.button("View Privacy Disclosure", use_container_width=True):
+            privacy_modal()
+
+        st.checkbox(
+            "I have read and understood the privacy disclosure.",
+            value=st.session_state["privacy_ack"],
+            disabled=not st.session_state["privacy_ack"],
+            key="su_privacy",
+        )
+
+        if st.button("Sign Up", use_container_width=True):
+            if password != confirm:
+                st.error("Passwords do not match.")
+            else:
+                ok, msg = create_user(
+                    first_name=first_name,
+                    last_name=last_name,
+                    username=username,
+                    email=email,
+                    password=password,
+                    vehicle_type=vehicle_type,
+                    privacy_accepted=st.session_state["privacy_ack"],
+                )
                 if ok:
-                    st.session_state["authed"] = True
-                    st.session_state["user"] = user
-                    st.session_state["page"] = "dashboard"
-                    st.rerun()
+                    st.success(msg)
                 else:
-                    st.error("Invalid username/password.")
+                    st.error(msg)
 
-        with tab2:
-            first_name = st.text_input("First Name", key="su_first")
-            last_name = st.text_input("Last Name", key="su_last")
-            username = st.text_input("Username", key="su_user")
-            email = st.text_input("Email", key="su_email")
-            password = st.text_input("Password", type="password", key="su_pass")
-            confirm = st.text_input("Confirm Password", type="password", key="su_pass2")
-            vehicle_type = st.selectbox("Select Which type of Vehicle", EV_OPTIONS, key="su_vehicle")
+    st.markdown("</div>", unsafe_allow_html=True)
 
-            if st.button("View Privacy Disclosure", use_container_width=True):
-                privacy_modal()
 
-            st.checkbox(
-                "I have read and understood the privacy disclosure.",
-                value=st.session_state["privacy_ack"],
-                disabled=not st.session_state["privacy_ack"],
-                key="su_privacy",
-            )
+def authed_nav():
+    nav = [("dashboard", "Dashboard"), ("ev", "EV Smart Routing"), ("sales", "Sales Forecasting"), ("parts", "Parts Procurement")]
+    current = st.session_state.get("page", "dashboard")
 
-            if st.button("Sign Up", use_container_width=True):
-                if password != confirm:
-                    st.error("Passwords do not match.")
-                else:
-                    ok, msg = create_user(
-                        first_name=first_name,
-                        last_name=last_name,
-                        username=username,
-                        email=email,
-                        password=password,
-                        vehicle_type=vehicle_type,
-                        privacy_accepted=st.session_state["privacy_ack"],
-                    )
-                    if ok:
-                        st.success(msg)
-                    else:
-                        st.error(msg)
+    st.markdown('<div class="navbar">', unsafe_allow_html=True)
+    cols = st.columns(len(nav) + 1)
 
-        st.markdown("</div>", unsafe_allow_html=True)
+    for i, (key, label) in enumerate(nav):
+        with cols[i]:
+            cls = "navbtn-active" if key == current else "navbtn"
+            st.markdown(f'<div class="{cls}">', unsafe_allow_html=True)
+            if st.button(label, use_container_width=True, key=f"nav_{key}"):
+                st.session_state["page"] = key
+                st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    with cols[-1]:
+        if st.button("Log out", use_container_width=True, key="nav_logout"):
+            st.session_state["authed"] = False
+            st.session_state["user"] = None
+            st.rerun()
 
     st.markdown("</div>", unsafe_allow_html=True)
 
 
 def app_pages():
-    page = st.session_state.get("page", "home")
+    page = st.session_state.get("page", "dashboard")
     if page == "dashboard":
         dashboard.render()
     elif page == "ev":
@@ -382,12 +345,11 @@ def app_pages():
     elif page == "parts":
         parts_procurement.render()
     else:
-        home_page()
+        dashboard.render()
 
 
 def main():
     st.set_page_config(page_title=APP_TITLE, layout="wide")
-
     load_css()
     init_db()
     ensure_default_admin()
@@ -395,23 +357,28 @@ def main():
 
     sidebar_panel()
     header_shell()
-    top_nav()
 
-    page = st.session_state.get("page", "home")
-
-    if page == "home":
-        home_page()
-        return
-
-    if page == "auth":
-        auth_page()
-        return
-
+    # NOT LOGGED IN: Home/Login tabs (smooth switch)
     if not st.session_state.get("authed"):
-        st.session_state["page"] = "auth"
-        auth_page()
+        # remember last selected tab
+        st.session_state.setdefault("guest_tab", "Home")
+        tabs = st.tabs(["Home", "Login / Sign Up"])
+
+        if st.session_state["guest_tab"] == "Home":
+            with tabs[0]:
+                home_page()
+            with tabs[1]:
+                auth_page()
+        else:
+            with tabs[0]:
+                home_page()
+            with tabs[1]:
+                auth_page()
+
         return
 
+    # LOGGED IN: module nav + pages
+    authed_nav()
     app_pages()
 
 
