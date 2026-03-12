@@ -1,6 +1,7 @@
 import base64
 import os
 import streamlit as st
+import streamlit.components.v1 as components
 
 from modules.auth import authenticate, create_user, ensure_default_admin
 from modules.db import init_db
@@ -129,17 +130,6 @@ def sidebar_panel():
             unsafe_allow_html=True,
         )
 
-        st.sidebar.markdown(
-            """
-            <div class="sidebar-card" style="margin-top:10px;">
-              <div class="sidebar-label">Exports</div>
-              <div class="sidebar-muted">• Forecast CSV (coming soon)</div>
-              <div class="sidebar-muted">• Report PDF (coming soon)</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
         st.sidebar.markdown("### Session actions")
         if st.sidebar.button("Clear UI cache (refresh)", use_container_width=True):
             st.cache_data.clear()
@@ -151,18 +141,16 @@ def sidebar_panel():
             st.session_state["user"] = None
             st.session_state["guest_tab"] = "Home"
             st.rerun()
-
     else:
         st.sidebar.markdown(
             """
             <div class="sidebar-card">
               <div class="sidebar-label">Guest</div>
-              <div class="sidebar-muted">Use the Home / Login tabs in the main page.</div>
+              <div class="sidebar-muted">Use Home / Login tabs in the main page.</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
-
         if st.sidebar.button("Go to Login / Sign Up", use_container_width=True):
             st.session_state["guest_tab"] = "Login / Sign Up"
             st.rerun()
@@ -202,57 +190,55 @@ def feature_card(img_path: str, title: str, sub: str):
 
 
 def footer_block():
-    st.markdown(
-        """
-        <div class="site-footer">
-          <div class="footer-grid">
-            <div>
-              <div class="footer-brand">© 2026 CPE025 Group — Technological Institute of the Philippines</div>
-              <div class="footer-note">
-                Toyota Decision Support System — a web-based decision support tool for EV routing,
-                sales forecasting, and parts procurement analytics.
-              </div>
-            </div>
-
-            <div>
-              <div class="footer-col-title">PROJECT</div>
-              <div class="footer-link">Overview</div>
-              <div class="footer-link">System Modules</div>
-              <div class="footer-link">Methodology</div>
-              <div class="footer-link">Contact the Team</div>
-            </div>
-
-            <div>
-              <div class="footer-col-title">POLICY</div>
-              <div class="footer-link">Privacy Disclosure</div>
-              <div class="footer-link">Terms of Use</div>
-              <div class="footer-link">Cookie Notice</div>
-              <div class="footer-link">Data Deletion Request</div>
-            </div>
-
-            <div>
-              <div class="footer-col-title">SOCIALS</div>
-              <div class="footer-link">Facebook: @CPE025Group</div>
-              <div class="footer-link">Instagram: @CPE025Group</div>
-              <div class="footer-link">Email: cpe025.group@sample.com</div>
-              <div class="footer-link">GitHub: github.com/kel-spec/CPE025-Final-Project</div>
-            </div>
-          </div>
-
-          <div class="footer-bottom">
-            <div class="footer-social">
-              <span class="footer-pill">in</span>
-              <span class="footer-pill">ig</span>
-              <span class="footer-pill">x</span>
-              <span class="footer-pill">yt</span>
-              <span class="footer-pill">fb</span>
-            </div>
-            <div>Demo footer text — replace with your real group details.</div>
+    html = """
+    <div class="site-footer">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">© 2026 CPE025 Group — Technological Institute of the Philippines</div>
+          <div class="footer-note">
+            Toyota Decision Support System — a web-based decision support tool for EV routing,
+            sales forecasting, and parts procurement analytics.
           </div>
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+
+        <div>
+          <div class="footer-col-title">PROJECT</div>
+          <div class="footer-link">Overview</div>
+          <div class="footer-link">System Modules</div>
+          <div class="footer-link">Methodology</div>
+          <div class="footer-link">Contact the Team</div>
+        </div>
+
+        <div>
+          <div class="footer-col-title">POLICY</div>
+          <div class="footer-link">Privacy Disclosure</div>
+          <div class="footer-link">Terms of Use</div>
+          <div class="footer-link">Cookie Notice</div>
+          <div class="footer-link">Data Deletion Request</div>
+        </div>
+
+        <div>
+          <div class="footer-col-title">SOCIALS</div>
+          <div class="footer-link">Facebook: @CPE025Group</div>
+          <div class="footer-link">Instagram: @CPE025Group</div>
+          <div class="footer-link">Email: cpe025.group@sample.com</div>
+          <div class="footer-link">GitHub: github.com/kel-spec/CPE025-Final-Project</div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div class="footer-social">
+          <span class="footer-pill">in</span>
+          <span class="footer-pill">ig</span>
+          <span class="footer-pill">x</span>
+          <span class="footer-pill">yt</span>
+          <span class="footer-pill">fb</span>
+        </div>
+        <div>Demo footer text — replace with your real group details.</div>
+      </div>
+    </div>
+    """
+    components.html(html, height=320)
 
 
 def home_page():
@@ -262,14 +248,12 @@ def home_page():
         "Route planning, sales forecasting, and parts procurement in one unified interface.",
         HOME_HERO,
     )
-
     hero_section(
         "ABOUT",
         "What this system does",
         "A decision support web app for EV operations: routing assistance, forecasting, and procurement insights.",
         ABOUT_BG,
     )
-
     hero_section(
         "FEATURES",
         "Core features",
