@@ -5,11 +5,20 @@
   --border:rgba(255,255,255,0.12);
 }
 
-html, body { background: var(--bg); color: var(--text); }
+html, body { background: var(--bg); color: var(--text); overflow-x: hidden !important; }
+body { overflow-x: hidden !important; }
+* { box-sizing: border-box; }
 header[data-testid="stHeader"]{ background: transparent; }
 
+/* Kill horizontal scroll from any wide component */
+[data-testid="stAppViewContainer"],
+[data-testid="stAppViewContainer"] .main,
+[data-testid="stAppViewContainer"] .main .block-container{
+  overflow-x: hidden !important;
+}
+
 .block-container{
-  max-width: 1320px;
+  max-width: 1280px;
   padding-top: 0px;
   padding-bottom: 26px;
 }
@@ -25,8 +34,9 @@ header[data-testid="stHeader"]{ background: transparent; }
   padding-left: 9999px;
   padding-right: 9999px;
 }
+
 .site-header-inner{
-  max-width: 1320px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 0 18px;
   display:flex;
@@ -34,6 +44,7 @@ header[data-testid="stHeader"]{ background: transparent; }
   justify-content:space-between;
   gap: 18px;
 }
+
 .brand-left{ display:flex; align-items:center; gap: 14px; }
 .logo-box{
   width: 42px; height: 42px;
@@ -50,7 +61,7 @@ header[data-testid="stHeader"]{ background: transparent; }
 
 /* Logged-in nav buttons styled like header items */
 .navbar{
-  max-width: 1320px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 10px 18px 6px 18px;
 }
@@ -124,6 +135,50 @@ header[data-testid="stHeader"]{ background: transparent; }
 .card-media img{ width:100%; height:100%; object-fit: cover; display:block; }
 .card-title{ font-weight:950; margin-top:12px; }
 .card-sub{ opacity:0.75; margin-top:6px; font-size:13px; }
+
+/* NEW: dashboard preview blocks */
+.preview{
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 16px;
+  overflow:hidden;
+}
+.preview-head{
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.10);
+  font-weight: 950;
+}
+.preview-body{
+  padding: 12px 14px;
+}
+.preview-kpi{
+  display:flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.preview-kpi .pill{
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  opacity: 0.9;
+}
+.preview-mini{
+  margin-top: 10px;
+  height: 140px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.10);
+  overflow:hidden;
+  background: rgba(0,0,0,0.25);
+}
+.preview-mini img{
+  width:100%;
+  height:100%;
+  object-fit: cover;
+  opacity: 0.92;
+  display:block;
+}
 
 /* CTA button */
 .btn-ghost .stButton button{
