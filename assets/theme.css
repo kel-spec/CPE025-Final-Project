@@ -3,11 +3,17 @@
   --text:rgba(255,255,255,0.92);
   --muted:rgba(255,255,255,0.72);
   --border:rgba(255,255,255,0.12);
+
+  --panel: rgba(15,18,24,0.78);
+  --panel2: rgba(12,14,18,0.92);
 }
 
+/* Base */
 html, body { background: var(--bg); color: var(--text); }
 header[data-testid="stHeader"]{ background: transparent; }
-button[data-testid="collapsedControl"]{ display:none !important; }
+
+/* IMPORTANT: do NOT hide collapsedControl anymore (brings back the sidebar arrow) */
+/* button[data-testid="collapsedControl"]{ display:none !important; } */
 
 .block-container{
   max-width: 1320px;
@@ -17,7 +23,9 @@ button[data-testid="collapsedControl"]{ display:none !important; }
 
 .small-muted{ color: var(--muted); font-size: 13px; }
 
-/* Header */
+/* =========================
+   DIM HEADER
+   ========================= */
 .site-header{
   background: linear-gradient(180deg, rgba(18,22,30,0.92), rgba(12,14,18,0.92));
   border-bottom: 1px solid rgba(255,255,255,0.08);
@@ -40,7 +48,7 @@ button[data-testid="collapsedControl"]{ display:none !important; }
 .brand-left{
   display:flex;
   align-items:center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .logo-box{
@@ -54,22 +62,36 @@ button[data-testid="collapsedControl"]{ display:none !important; }
   justify-content:center;
   overflow:hidden;
 }
+
 .logo-box img{
   width: 34px;
   height: 34px;
   object-fit: contain;
   filter: brightness(1.1) contrast(1.05);
 }
+
 .brand-text{
   font-weight: 950;
   letter-spacing: 0.8px;
 }
+
+.app-name{
+  opacity: 0.75;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
 .header-right{
   font-size: 13px;
   color: rgba(255,255,255,0.72);
+  white-space: nowrap;
 }
 
-/* NAV = hover highlight + active underline (not buttons) */
+/* =========================
+   TOP NAV: hover highlight + active underline
+   (styled Streamlit radio)
+   ========================= */
 .topnav div[role="radiogroup"]{
   display:flex !important;
   align-items:center;
@@ -87,13 +109,17 @@ button[data-testid="collapsedControl"]{ display:none !important; }
   align-items:center !important;
 }
 
+/* Hide the actual radio input + any circle */
 .topnav div[role="radiogroup"] > label > input{
-  position:absolute !important;
-  opacity:0 !important;
-  width:0 !important;
-  height:0 !important;
+  display:none !important;
 }
 
+/* Some Streamlit versions draw SVG circles */
+.topnav [data-baseweb="radio"] svg{
+  display:none !important;
+}
+
+/* The clickable text item */
 .topnav div[role="radiogroup"] > label > div{
   background: transparent !important;
   border: none !important;
@@ -114,7 +140,9 @@ button[data-testid="collapsedControl"]{ display:none !important; }
   box-shadow: inset 0 -2px 0 rgba(255,255,255,0.70);
 }
 
-/* Hero sections */
+/* =========================
+   HERO SECTIONS
+   ========================= */
 .hero{
   position: relative;
   min-height: 82vh;
@@ -126,6 +154,7 @@ button[data-testid="collapsedControl"]{ display:none !important; }
   background: radial-gradient(900px 500px at 50% 35%, rgba(255,255,255,0.06), rgba(0,0,0,0.65)),
               linear-gradient(180deg, rgba(20,24,32,0.85), rgba(5,6,8,0.92));
 }
+
 .hero img{
   position:absolute;
   inset:0;
@@ -136,6 +165,7 @@ button[data-testid="collapsedControl"]{ display:none !important; }
   filter: contrast(1.05) saturate(1.05);
   opacity: 0.85;
 }
+
 .hero::after{
   content:"";
   position:absolute;
@@ -143,6 +173,7 @@ button[data-testid="collapsedControl"]{ display:none !important; }
   background: radial-gradient(1000px 600px at 50% 35%, rgba(0,0,0,0.25), rgba(0,0,0,0.72)),
               linear-gradient(90deg, rgba(0,0,0,0.55), rgba(0,0,0,0.35));
 }
+
 .hero-content{
   position: relative;
   z-index: 2;
@@ -153,18 +184,22 @@ button[data-testid="collapsedControl"]{ display:none !important; }
   text-align:center;
   padding: 26px;
 }
+
 .hero-inner{ max-width: 980px; }
+
 .hero-kicker{
   font-weight: 900;
   letter-spacing: 0.6px;
   opacity: 0.85;
 }
+
 .hero-title{
   font-size: 58px;
   font-weight: 950;
   line-height: 1.0;
   margin-top: 10px;
 }
+
 .hero-sub{
   margin: 14px auto 0 auto;
   max-width: 70ch;
@@ -172,24 +207,36 @@ button[data-testid="collapsedControl"]{ display:none !important; }
   font-size: 15px;
 }
 
-/* Cards */
+/* =========================
+   FEATURE CARDS
+   ========================= */
 .card{
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.10);
   border-radius: 16px;
   padding: 14px;
 }
+
 .card-media{
   height: 160px;
   border-radius: 14px;
   overflow:hidden;
   border: 1px solid rgba(255,255,255,0.10);
 }
-.card-media img{ width:100%; height:100%; object-fit: cover; display:block; }
+
+.card-media img{
+  width:100%;
+  height:100%;
+  object-fit: cover;
+  display:block;
+}
+
 .card-title{ font-weight: 950; margin-top: 12px; }
 .card-sub{ opacity: 0.75; margin-top: 6px; font-size: 13px; }
 
-/* Buttons */
+/* =========================
+   CTA BUTTON (dim)
+   ========================= */
 .btn-ghost .stButton button{
   border-radius: 999px !important;
   border: 1px solid rgba(255,255,255,0.85) !important;
@@ -201,6 +248,9 @@ button[data-testid="collapsedControl"]{ display:none !important; }
   background: rgba(255,255,255,0.10) !important;
 }
 
+/* =========================
+   AUTH CARD
+   ========================= */
 .auth-card{
   background: rgba(12,16,23,0.70);
   border: 1px solid rgba(255,255,255,0.10);
@@ -211,5 +261,33 @@ button[data-testid="collapsedControl"]{ display:none !important; }
 .auth-title{ font-size: 26px; font-weight: 900; margin-bottom: 6px; }
 .auth-sub{ opacity: 0.75; margin-bottom: 12px; }
 
+/* Inputs */
 .stTextInput input, .stSelectbox select{ border-radius: 8px !important; }
 .stButton button{ border-radius: 10px !important; }
+
+/* =========================
+   SIDEBAR (cleaner)
+   ========================= */
+section[data-testid="stSidebar"]{
+  background: rgba(10,12,16,0.96);
+  border-right: 1px solid rgba(255,255,255,0.08);
+}
+section[data-testid="stSidebar"] *{
+  color: rgba(255,255,255,0.90);
+}
+.sidebar-card{
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 14px;
+  padding: 12px;
+}
+.sidebar-label{
+  font-weight: 900;
+  letter-spacing: 0.4px;
+  opacity: 0.9;
+  margin-bottom: 6px;
+}
+.sidebar-muted{
+  opacity: 0.72;
+  font-size: 13px;
+}
