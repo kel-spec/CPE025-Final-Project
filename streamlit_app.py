@@ -20,16 +20,17 @@ EV_OPTIONS = [
     "Other (EV)",
 ]
 
-# Backgrounds (use local assets later to avoid broken images)
-HOME_HERO_IMG = "https://images.unsplash.com/photo-1617886322009-6f0bb0b1f3d3?auto=format&fit=crop&w=2400&q=80"
-ABOUT_BG = "https://images.unsplash.com/photo-1611843467160-25afb8df1074?auto=format&fit=crop&w=2400&q=80"
-FEATURES_BG = "https://images.unsplash.com/photo-1609520505218-7421b92a1f8a?auto=format&fit=crop&w=2400&q=80"
-PROCEED_BG = "https://images.unsplash.com/photo-1619767886558-efdc259cde1a?auto=format&fit=crop&w=2400&q=80"
+# Local hero images (you created this folder)
+HOME_HERO = "assets/hero/home.jpg"
+ABOUT_BG = "assets/hero/about.jpg"
+FEATURES_BG = "assets/hero/features.jpg"
+PROCEED_BG = "assets/hero/proceed.jpg"
 
+# Local feature images (create these)
 FEATURE_MEDIA = {
-    "ev": "https://images.unsplash.com/photo-1524666041070-9d87656c25bb?auto=format&fit=crop&w=1400&q=80",
-    "sales": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1400&q=80",
-    "parts": "https://images.unsplash.com/photo-1586528116493-da8b8d8f99e9?auto=format&fit=crop&w=1400&q=80",
+    "ev": "assets/features/ev.jpg",
+    "sales": "assets/features/sales.jpg",
+    "parts": "assets/features/parts.jpg",
 }
 
 PRIVACY_TEXT = """
@@ -38,32 +39,47 @@ We collect: first name, last name, username, email, selected EV type.
 Purpose: account creation and profile display.
 """
 
-
 def load_css():
     with open("assets/theme.css", "r", encoding="utf-8") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-
-def init_state():
-    st.session_state.setdefault("authed", False)
-    st.session_state.setdefault("user", None)
-    st.session_state.setdefault("page", "home")  # home | auth | dashboard | ev | sales | parts
-    st.session_state.setdefault("privacy_ack", False)
-
-
-def _b64_image(path: str) -> str | None:
+def _b64_file(path: str) -> str | None:
     if not os.path.exists(path):
         return None
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode("utf-8")
 
+def src_for_image(path: str) -> str:
+    b64 = _b64_file(path)
+    if not b64:
+        return ""  # will show gradient fallback
+    ext = "jpg"
+    if path.lower().endswith(".png"):
+        ext = "png"
+    return f"data:image/{ext};base64,{b64}"
+
+def get_qp_page(default="home") -> str:
+    qp = st.query_params
+    p = qp.get("p", default)
+    if isinstance(p, list):
+        p = p[0] if p else default
+    return p or default
+
+def set_qp_page(page: str):
+    st.query_params["p"] = page
+
+def init_state():
+    st.session_state.setdefault("authed", False)
+    st.session_state.setdefault("user", None)
+    st.session_state.setdefault("privacy_ack", False)
+    st.session_state["page"] = get_qp_page("home")
 
 def header_shell():
     user = st.session_state.get("user")
     uname = user["username"] if user else "Users"
     role = user["role"] if user else "guest"
 
-    logo_b64 = _b64_image("assets/toyota_logo.png")
+    logo_b64 = _b64_file("assets/toyota_logo.png")
     logo_html = f'<img src="data:image/png;base64,{logo_b64}" alt="Toyota logo" />' if logo_b64 else ""
 
     st.markdown(
@@ -82,45 +98,31 @@ def header_shell():
         unsafe_allow_html=True,
     )
 
-
 def top_nav():
-    # Header navigation: hover highlight + active underline (styled via CSS)
-    if st.session_state["authed"]:
-        nav = {
-            "home": "Home",
-            "dashboard": "Dashboard",
-            "ev": "EV Smart Routing",
-            "sales": "Sales Forecasting",
-            "parts": "Parts Procurement",
-        }
+    if st.session_state.get("authed"):
+        nav = [
+            ("home", "Home"),
+            ("dashboard", "Dashboard"),
+            ("ev", "EV Smart Routing"),
+            ("sales", "Sales Forecasting"),
+            ("parts", "Parts Procurement"),
+        ]
     else:
-        nav = {
-            "home": "Home",
-            "auth": "Login / Sign Up",
-        }
+        nav = [
+            ("home", "Home"),
+            ("auth", "Login / Sign Up"),
+        ]
 
-    st.markdown('<div class="topnav">', unsafe_allow_html=True)
+    current = st.session_state.get("page", "home")
 
-    current = st.session_state["page"]
-    if current not in nav:
-        current = "home"
-        st.session_state["page"] = "home"
+    items = []
+    for key, label in nav:
+        cls = "nav-item active" if key == current else "nav-item"
+        items.append(f'<a class="{cls}" href="?p={key}">{label}</a>')
 
-    choice = st.radio(
-        "Navigation",
-        options=list(nav.keys()),
-        index=list(nav.keys()).index(current),
-        format_func=lambda k: nav[k],
-        horizontal=True,
-        label_visibility="collapsed",
-    )
-
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.session_state["page"] = choice
-
+    st.markdown(f"<div class='navline'>{''.join(items)}</div>", unsafe_allow_html=True)
 
 def sidebar_panel():
-    # Sidebar is for more than page links: profile + quick actions + status
     st.sidebar.markdown("## Menu")
     st.sidebar.caption("Account + shortcuts")
 
@@ -143,25 +145,21 @@ def sidebar_panel():
         )
 
         st.sidebar.markdown("### Quick actions")
-        if st.sidebar.button("Go to Dashboard", use_container_width=True):
-            st.session_state["page"] = "dashboard"
-            st.rerun()
-        if st.sidebar.button("Open Sales Forecasting", use_container_width=True):
-            st.session_state["page"] = "sales"
-            st.rerun()
-        if st.sidebar.button("Open EV Smart Routing", use_container_width=True):
-            st.session_state["page"] = "ev"
-            st.rerun()
-        if st.sidebar.button("Open Parts Procurement", use_container_width=True):
-            st.session_state["page"] = "parts"
-            st.rerun()
+        if st.sidebar.button("Dashboard", use_container_width=True):
+            set_qp_page("dashboard"); st.rerun()
+        if st.sidebar.button("Sales Forecasting", use_container_width=True):
+            set_qp_page("sales"); st.rerun()
+        if st.sidebar.button("EV Smart Routing", use_container_width=True):
+            set_qp_page("ev"); st.rerun()
+        if st.sidebar.button("Parts Procurement", use_container_width=True):
+            set_qp_page("parts"); st.rerun()
 
-        st.sidebar.markdown("### System status (mock)")
+        st.sidebar.markdown("### Status (mock)")
         st.sidebar.markdown(
             """
             <div class="sidebar-card">
-              <div class="sidebar-label">Status</div>
-              <div class="sidebar-muted">Sales model: loaded (if configured)</div>
+              <div class="sidebar-label">System</div>
+              <div class="sidebar-muted">Sales model: configured</div>
               <div class="sidebar-muted">Last update: —</div>
             </div>
             """,
@@ -171,9 +169,8 @@ def sidebar_panel():
         if st.sidebar.button("Log out", use_container_width=True):
             st.session_state["authed"] = False
             st.session_state["user"] = None
-            st.session_state["page"] = "home"
+            set_qp_page("home")
             st.rerun()
-
     else:
         st.sidebar.markdown(
             """
@@ -184,37 +181,22 @@ def sidebar_panel():
             """,
             unsafe_allow_html=True,
         )
-
         if st.sidebar.button("Login / Sign Up", use_container_width=True):
-            st.session_state["page"] = "auth"
-            st.rerun()
-
-        st.sidebar.markdown("### Preview")
-        st.sidebar.caption("These will redirect to login when opened.")
-        if st.sidebar.button("Sales Forecasting", use_container_width=True):
-            st.session_state["page"] = "auth"
-            st.rerun()
-        if st.sidebar.button("EV Smart Routing", use_container_width=True):
-            st.session_state["page"] = "auth"
-            st.rerun()
-        if st.sidebar.button("Parts Procurement", use_container_width=True):
-            st.session_state["page"] = "auth"
-            st.rerun()
-
+            set_qp_page("auth"); st.rerun()
 
 def goto_protected(target_page: str):
-    if st.session_state["authed"]:
-        st.session_state["page"] = target_page
+    if st.session_state.get("authed"):
+        set_qp_page(target_page)
     else:
-        st.session_state["page"] = "auth"
+        set_qp_page("auth")
     st.rerun()
 
-
-def hero_section(kicker: str, title: str, sub: str, bg_url: str):
+def hero_section(kicker: str, title: str, sub: str, bg_path: str):
+    src = src_for_image(bg_path)
     st.markdown(
         f"""
         <div class="hero">
-          <img src="{bg_url}" alt="bg" />
+          <img src="{src}" alt="bg" />
           <div class="hero-content">
             <div class="hero-inner">
               <div class="hero-kicker">{kicker}</div>
@@ -227,13 +209,25 @@ def hero_section(kicker: str, title: str, sub: str, bg_url: str):
         unsafe_allow_html=True,
     )
 
+def feature_card(img_path: str, title: str, sub: str):
+    src = src_for_image(img_path)
+    st.markdown(
+        f"""
+        <div class="card">
+          <div class="card-media"><img src="{src}" alt="{title}" /></div>
+          <div class="card-title">{title}</div>
+          <div class="card-sub">{sub}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 def home_page():
     hero_section(
         "TOYOTA",
         "Decision Support System",
         "Route planning, sales forecasting, and parts procurement in one unified interface.",
-        HOME_HERO_IMG,
+        HOME_HERO,
     )
 
     hero_section(
@@ -252,44 +246,17 @@ def home_page():
 
     c1, c2, c3 = st.columns(3)
     with c1:
-        st.markdown(
-            f"""
-            <div class="card">
-              <div class="card-media"><img src="{FEATURE_MEDIA['ev']}" alt="ev" /></div>
-              <div class="card-title">EV Smart Routing</div>
-              <div class="card-sub">Map + ETA visualization</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        feature_card(FEATURE_MEDIA["ev"], "EV Smart Routing", "Map + ETA visualization")
         if st.button("Open EV Smart Routing", use_container_width=True, key="home_ev"):
             goto_protected("ev")
 
     with c2:
-        st.markdown(
-            f"""
-            <div class="card">
-              <div class="card-media"><img src="{FEATURE_MEDIA['sales']}" alt="sales" /></div>
-              <div class="card-title">Sales Forecasting</div>
-              <div class="card-sub">Model-driven forecast charts</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        feature_card(FEATURE_MEDIA["sales"], "Sales Forecasting", "Model-driven forecast charts")
         if st.button("Open Sales Forecasting", use_container_width=True, key="home_sales"):
             goto_protected("sales")
 
     with c3:
-        st.markdown(
-            f"""
-            <div class="card">
-              <div class="card-media"><img src="{FEATURE_MEDIA['parts']}" alt="parts" /></div>
-              <div class="card-title">Parts Procurement</div>
-              <div class="card-sub">Stock vs demand monitoring</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        feature_card(FEATURE_MEDIA["parts"], "Parts Procurement", "Stock vs demand monitoring")
         if st.button("Open Parts Procurement", use_container_width=True, key="home_parts"):
             goto_protected("parts")
 
@@ -304,10 +271,8 @@ def home_page():
     with mid:
         st.markdown('<div class="btn-ghost">', unsafe_allow_html=True)
         if st.button("PROCEED TO LOGIN / SIGN UP", use_container_width=True, key="proceed_login"):
-            st.session_state["page"] = "auth"
-            st.rerun()
+            set_qp_page("auth"); st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
-
 
 def auth_page():
     @st.dialog("Privacy Disclosure")
@@ -334,7 +299,7 @@ def auth_page():
                 if ok:
                     st.session_state["authed"] = True
                     st.session_state["user"] = user
-                    st.session_state["page"] = "dashboard"
+                    set_qp_page("dashboard")
                     st.rerun()
                 else:
                     st.error("Invalid username/password.")
@@ -378,9 +343,8 @@ def auth_page():
 
         st.markdown("</div>", unsafe_allow_html=True)
 
-
 def app_pages():
-    page = st.session_state["page"]
+    page = st.session_state.get("page", "home")
     if page == "dashboard":
         dashboard.render()
     elif page == "ev":
@@ -391,7 +355,6 @@ def app_pages():
         parts_procurement.render()
     else:
         home_page()
-
 
 def main():
     st.set_page_config(page_title=APP_TITLE, layout="wide")
@@ -405,21 +368,22 @@ def main():
     header_shell()
     top_nav()
 
-    if st.session_state["page"] == "home":
+    page = st.session_state.get("page", "home")
+
+    if page == "home":
         home_page()
         return
 
-    if st.session_state["page"] == "auth":
+    if page == "auth":
         auth_page()
         return
 
-    if not st.session_state["authed"]:
-        st.session_state["page"] = "auth"
+    if not st.session_state.get("authed"):
+        set_qp_page("auth")
         auth_page()
         return
 
     app_pages()
-
 
 if __name__ == "__main__":
     main()
