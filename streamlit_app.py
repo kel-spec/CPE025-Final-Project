@@ -26,7 +26,7 @@ ABOUT_BG = "assets/hero/about.jpg"
 FEATURES_BG = "assets/hero/features.jpg"
 PROCEED_BG = "assets/hero/proceed.jpg"
 
-# Local feature images
+# Local feature images (home page cards)
 FEATURE_MEDIA = {
     "ev": "assets/features/ev.jpg",
     "sales": "assets/features/sales.jpg",
@@ -66,8 +66,6 @@ def init_state():
     st.session_state.setdefault("authed", False)
     st.session_state.setdefault("user", None)
     st.session_state.setdefault("privacy_ack", False)
-
-    # guest landing tabs
     st.session_state.setdefault("guest_tab", "Home")
 
 
@@ -97,35 +95,74 @@ def header_shell():
 
 
 def sidebar_panel():
-    st.sidebar.markdown("## Menu")
-    st.sidebar.caption("Account + shortcuts")
+    """
+    Sidebar role change:
+    - Not navigation (tabs handle navigation)
+    - Use for: Account, System health, Exports (placeholder), Session actions
+    """
+    st.sidebar.markdown("## Panel")
+    st.sidebar.caption("Account • Status • Utilities")
 
     if st.session_state.get("authed"):
         user = st.session_state.get("user") or {}
         username = user.get("username", "user")
         role = user.get("role", "user")
+        email = user.get("email", "—")
         vehicle_type = user.get("vehicle_type", "—")
 
+        # Account
         st.sidebar.markdown(
             f"""
             <div class="sidebar-card">
-              <div class="sidebar-label">Signed in</div>
+              <div class="sidebar-label">Account</div>
               <div class="sidebar-muted">User: {username}</div>
               <div class="sidebar-muted">Role: {role}</div>
+              <div class="sidebar-muted">Email: {email}</div>
               <div class="sidebar-muted">Vehicle: {vehicle_type}</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-        st.sidebar.markdown("### Quick actions")
-        st.sidebar.info("Use the tabs after login for modules.", icon="ℹ️")
+        # System health
+        st.sidebar.markdown(
+            """
+            <div class="sidebar-card" style="margin-top:10px;">
+              <div class="sidebar-label">System health</div>
+              <div class="sidebar-muted">DB: connected (local)</div>
+              <div class="sidebar-muted">Sales model: available</div>
+              <div class="sidebar-muted">Routing: mock</div>
+              <div class="sidebar-muted">Procurement: mock</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        # Exports (placeholder)
+        st.sidebar.markdown(
+            """
+            <div class="sidebar-card" style="margin-top:10px;">
+              <div class="sidebar-label">Exports</div>
+              <div class="sidebar-muted">• Forecast CSV (coming soon)</div>
+              <div class="sidebar-muted">• Report PDF (coming soon)</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        st.sidebar.markdown("### Session actions")
+        if st.sidebar.button("Clear UI cache (refresh)", use_container_width=True):
+            # safe UI refresh only
+            st.cache_data.clear()
+            st.cache_resource.clear()
+            st.rerun()
 
         if st.sidebar.button("Log out", use_container_width=True):
             st.session_state["authed"] = False
             st.session_state["user"] = None
             st.session_state["guest_tab"] = "Home"
             st.rerun()
+
     else:
         st.sidebar.markdown(
             """
@@ -136,6 +173,20 @@ def sidebar_panel():
             """,
             unsafe_allow_html=True,
         )
+        st.sidebar.markdown(
+            """
+            <div class="sidebar-card" style="margin-top:10px;">
+              <div class="sidebar-label">What you can do</div>
+              <div class="sidebar-muted">• View overview</div>
+              <div class="sidebar-muted">• Read about modules</div>
+              <div class="sidebar-muted">• Proceed to registration</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.sidebar.button("Go to Login / Sign Up", use_container_width=True):
+            st.session_state["guest_tab"] = "Login / Sign Up"
+            st.rerun()
 
 
 def hero_section(kicker: str, title: str, sub: str, bg_path: str):
@@ -189,7 +240,7 @@ def home_page():
     hero_section(
         "FEATURES",
         "Core features",
-        "Open a module after signing in. If you’re a guest, switch to Login / Sign Up.",
+        "Sign in to access modules. Sales Forecasting is functional and demo-ready.",
         FEATURES_BG,
     )
 
@@ -297,13 +348,6 @@ def profile_tab():
         st.write("**Last Name:**", user.get("last_name", "—"))
         st.write("**Vehicle Type:**", user.get("vehicle_type", "—"))
 
-    st.divider()
-    if st.button("Log out", use_container_width=True):
-        st.session_state["authed"] = False
-        st.session_state["user"] = None
-        st.session_state["guest_tab"] = "Home"
-        st.rerun()
-
 
 def main():
     st.set_page_config(page_title=APP_TITLE, layout="wide")
@@ -317,9 +361,10 @@ def main():
 
     # Guest: smooth Home/Login tabs
     if not st.session_state.get("authed"):
+        st.session_state.setdefault("guest_tab", "Home")
         tabs = st.tabs(["Home", "Login / Sign Up"])
 
-        if st.session_state.get("guest_tab") == "Login / Sign Up":
+        if st.session_state["guest_tab"] == "Login / Sign Up":
             with tabs[0]:
                 home_page()
             with tabs[1]:
@@ -331,7 +376,7 @@ def main():
                 auth_page()
         return
 
-    # Logged in: tabs for modules (smooth switching)
+    # Logged-in: smooth module tabs
     app_tabs = st.tabs(
         [
             "Dashboard",
@@ -344,16 +389,12 @@ def main():
 
     with app_tabs[0]:
         dashboard.render()
-
     with app_tabs[1]:
         ev_routing.render()
-
     with app_tabs[2]:
         sales_forecasting.render()
-
     with app_tabs[3]:
         parts_procurement.render()
-
     with app_tabs[4]:
         profile_tab()
 
