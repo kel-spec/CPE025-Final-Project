@@ -284,7 +284,7 @@ def footer_block():
         <div class="footer-social">
           <span class="footer-pill">T</span>
           <span class="footer-pill">I</span>
-          <span class="footer-pill">P/span>
+          <span class="footer-pill">P</span>
         </div>
       </div>
     </div>
