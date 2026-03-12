@@ -20,7 +20,7 @@ EV_OPTIONS = [
     "Other (EV)",
 ]
 
-# Backgrounds (replace later with local assets if needed)
+# Backgrounds (use local assets later to avoid broken images)
 HOME_HERO_IMG = "https://images.unsplash.com/photo-1617886322009-6f0bb0b1f3d3?auto=format&fit=crop&w=2400&q=80"
 ABOUT_BG = "https://images.unsplash.com/photo-1611843467160-25afb8df1074?auto=format&fit=crop&w=2400&q=80"
 FEATURES_BG = "https://images.unsplash.com/photo-1609520505218-7421b92a1f8a?auto=format&fit=crop&w=2400&q=80"
@@ -38,9 +38,11 @@ We collect: first name, last name, username, email, selected EV type.
 Purpose: account creation and profile display.
 """
 
+
 def load_css():
     with open("assets/theme.css", "r", encoding="utf-8") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
 
 def init_state():
     st.session_state.setdefault("authed", False)
@@ -48,11 +50,13 @@ def init_state():
     st.session_state.setdefault("page", "home")  # home | auth | dashboard | ev | sales | parts
     st.session_state.setdefault("privacy_ack", False)
 
+
 def _b64_image(path: str) -> str | None:
     if not os.path.exists(path):
         return None
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode("utf-8")
+
 
 def header_shell():
     user = st.session_state.get("user")
@@ -69,6 +73,7 @@ def header_shell():
             <div class="brand-left">
               <div class="logo-box">{logo_html}</div>
               <div class="brand-text">TOYOTA</div>
+              <div class="app-name">{APP_TITLE}</div>
             </div>
             <div class="header-right">Welcome, {uname} ({role})</div>
           </div>
@@ -77,7 +82,9 @@ def header_shell():
         unsafe_allow_html=True,
     )
 
+
 def top_nav():
+    # Header navigation: hover highlight + active underline (styled via CSS)
     if st.session_state["authed"]:
         nav = {
             "home": "Home",
@@ -92,33 +99,108 @@ def top_nav():
             "auth": "Login / Sign Up",
         }
 
-    cols = st.columns([7, 1])
+    st.markdown('<div class="topnav">', unsafe_allow_html=True)
 
-    with cols[0]:
-        st.markdown('<div class="topnav">', unsafe_allow_html=True)
-        current = st.session_state["page"]
-        if current not in nav:
-            current = "home"
-            st.session_state["page"] = "home"
+    current = st.session_state["page"]
+    if current not in nav:
+        current = "home"
+        st.session_state["page"] = "home"
 
-        choice = st.radio(
-            "Navigation",
-            options=list(nav.keys()),
-            index=list(nav.keys()).index(current),
-            format_func=lambda k: nav[k],
-            horizontal=True,
-            label_visibility="collapsed",
+    choice = st.radio(
+        "Navigation",
+        options=list(nav.keys()),
+        index=list(nav.keys()).index(current),
+        format_func=lambda k: nav[k],
+        horizontal=True,
+        label_visibility="collapsed",
+    )
+
+    st.markdown("</div>", unsafe_allow_html=True)
+    st.session_state["page"] = choice
+
+
+def sidebar_panel():
+    # Sidebar is for more than page links: profile + quick actions + status
+    st.sidebar.markdown("## Menu")
+    st.sidebar.caption("Account + shortcuts")
+
+    if st.session_state.get("authed"):
+        user = st.session_state.get("user") or {}
+        username = user.get("username", "user")
+        role = user.get("role", "user")
+        vehicle_type = user.get("vehicle_type", "—")
+
+        st.sidebar.markdown(
+            f"""
+            <div class="sidebar-card">
+              <div class="sidebar-label">Signed in</div>
+              <div class="sidebar-muted">User: {username}</div>
+              <div class="sidebar-muted">Role: {role}</div>
+              <div class="sidebar-muted">Vehicle: {vehicle_type}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
-        st.markdown("</div>", unsafe_allow_html=True)
-        st.session_state["page"] = choice
 
-    with cols[1]:
-        if st.session_state["authed"]:
-            if st.button("Log out", use_container_width=True):
-                st.session_state["authed"] = False
-                st.session_state["user"] = None
-                st.session_state["page"] = "home"
-                st.rerun()
+        st.sidebar.markdown("### Quick actions")
+        if st.sidebar.button("Go to Dashboard", use_container_width=True):
+            st.session_state["page"] = "dashboard"
+            st.rerun()
+        if st.sidebar.button("Open Sales Forecasting", use_container_width=True):
+            st.session_state["page"] = "sales"
+            st.rerun()
+        if st.sidebar.button("Open EV Smart Routing", use_container_width=True):
+            st.session_state["page"] = "ev"
+            st.rerun()
+        if st.sidebar.button("Open Parts Procurement", use_container_width=True):
+            st.session_state["page"] = "parts"
+            st.rerun()
+
+        st.sidebar.markdown("### System status (mock)")
+        st.sidebar.markdown(
+            """
+            <div class="sidebar-card">
+              <div class="sidebar-label">Status</div>
+              <div class="sidebar-muted">Sales model: loaded (if configured)</div>
+              <div class="sidebar-muted">Last update: —</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        if st.sidebar.button("Log out", use_container_width=True):
+            st.session_state["authed"] = False
+            st.session_state["user"] = None
+            st.session_state["page"] = "home"
+            st.rerun()
+
+    else:
+        st.sidebar.markdown(
+            """
+            <div class="sidebar-card">
+              <div class="sidebar-label">Guest</div>
+              <div class="sidebar-muted">Log in to access modules and your profile.</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        if st.sidebar.button("Login / Sign Up", use_container_width=True):
+            st.session_state["page"] = "auth"
+            st.rerun()
+
+        st.sidebar.markdown("### Preview")
+        st.sidebar.caption("These will redirect to login when opened.")
+        if st.sidebar.button("Sales Forecasting", use_container_width=True):
+            st.session_state["page"] = "auth"
+            st.rerun()
+        if st.sidebar.button("EV Smart Routing", use_container_width=True):
+            st.session_state["page"] = "auth"
+            st.rerun()
+        if st.sidebar.button("Parts Procurement", use_container_width=True):
+            st.session_state["page"] = "auth"
+            st.rerun()
+
 
 def goto_protected(target_page: str):
     if st.session_state["authed"]:
@@ -126,6 +208,7 @@ def goto_protected(target_page: str):
     else:
         st.session_state["page"] = "auth"
     st.rerun()
+
 
 def hero_section(kicker: str, title: str, sub: str, bg_url: str):
     st.markdown(
@@ -143,6 +226,7 @@ def hero_section(kicker: str, title: str, sub: str, bg_url: str):
         """,
         unsafe_allow_html=True,
     )
+
 
 def home_page():
     hero_section(
@@ -224,6 +308,7 @@ def home_page():
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
+
 def auth_page():
     @st.dialog("Privacy Disclosure")
     def privacy_modal():
@@ -293,6 +378,7 @@ def auth_page():
 
         st.markdown("</div>", unsafe_allow_html=True)
 
+
 def app_pages():
     page = st.session_state["page"]
     if page == "dashboard":
@@ -306,13 +392,16 @@ def app_pages():
     else:
         home_page()
 
+
 def main():
     st.set_page_config(page_title=APP_TITLE, layout="wide")
+
     load_css()
     init_db()
     ensure_default_admin()
     init_state()
 
+    sidebar_panel()
     header_shell()
     top_nav()
 
@@ -330,6 +419,7 @@ def main():
         return
 
     app_pages()
+
 
 if __name__ == "__main__":
     main()
