@@ -298,6 +298,8 @@ def home_page():
 
 
 def auth_page():
+    st.markdown('<div class="page-auth">', unsafe_allow_html=True)
+
     @st.dialog("Privacy Disclosure")
     def privacy_modal():
         st.markdown(PRIVACY_TEXT)
@@ -365,6 +367,8 @@ def auth_page():
                         st.error(msg)
 
         st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def app_pages():
