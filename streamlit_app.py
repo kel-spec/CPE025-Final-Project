@@ -65,8 +65,10 @@ def src_for_image(path: str) -> str:
 def init_state():
     st.session_state.setdefault("authed", False)
     st.session_state.setdefault("user", None)
-    st.session_state.setdefault("page", "dashboard")  # used only when authed
     st.session_state.setdefault("privacy_ack", False)
+
+    # guest landing tabs
+    st.session_state.setdefault("guest_tab", "Home")
 
 
 def header_shell():
@@ -117,41 +119,23 @@ def sidebar_panel():
         )
 
         st.sidebar.markdown("### Quick actions")
-        if st.sidebar.button("Dashboard", use_container_width=True):
-            st.session_state["page"] = "dashboard"
-            st.rerun()
-        if st.sidebar.button("Sales Forecasting", use_container_width=True):
-            st.session_state["page"] = "sales"
-            st.rerun()
-        if st.sidebar.button("EV Smart Routing", use_container_width=True):
-            st.session_state["page"] = "ev"
-            st.rerun()
-        if st.sidebar.button("Parts Procurement", use_container_width=True):
-            st.session_state["page"] = "parts"
-            st.rerun()
+        st.sidebar.info("Use the tabs after login for modules.", icon="ℹ️")
 
         if st.sidebar.button("Log out", use_container_width=True):
             st.session_state["authed"] = False
             st.session_state["user"] = None
+            st.session_state["guest_tab"] = "Home"
             st.rerun()
     else:
         st.sidebar.markdown(
             """
             <div class="sidebar-card">
               <div class="sidebar-label">Guest</div>
-              <div class="sidebar-muted">Use the Home/Login tabs in the main page.</div>
+              <div class="sidebar-muted">Use the Home / Login tabs in the main page.</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
-
-
-def goto_protected(target_page: str):
-    if st.session_state.get("authed"):
-        st.session_state["page"] = target_page
-    else:
-        st.session_state["guest_tab"] = "Login / Sign Up"
-    st.rerun()
 
 
 def hero_section(kicker: str, title: str, sub: str, bg_path: str):
@@ -205,25 +189,17 @@ def home_page():
     hero_section(
         "FEATURES",
         "Core features",
-        "Open a module below. If you're not logged in, switch to the Login / Sign Up tab.",
+        "Open a module after signing in. If you’re a guest, switch to Login / Sign Up.",
         FEATURES_BG,
     )
 
     c1, c2, c3 = st.columns(3)
     with c1:
         feature_card(FEATURE_MEDIA["ev"], "EV Smart Routing", "Map + ETA visualization")
-        if st.button("Open EV Smart Routing", use_container_width=True, key="home_ev"):
-            goto_protected("ev")
-
     with c2:
         feature_card(FEATURE_MEDIA["sales"], "Sales Forecasting", "Model-driven forecast charts")
-        if st.button("Open Sales Forecasting", use_container_width=True, key="home_sales"):
-            goto_protected("sales")
-
     with c3:
         feature_card(FEATURE_MEDIA["parts"], "Parts Procurement", "Stock vs demand monitoring")
-        if st.button("Open Parts Procurement", use_container_width=True, key="home_parts"):
-            goto_protected("parts")
 
     hero_section(
         "PROCEED",
@@ -264,7 +240,6 @@ def auth_page():
             if ok:
                 st.session_state["authed"] = True
                 st.session_state["user"] = user
-                st.session_state["page"] = "dashboard"
                 st.rerun()
             else:
                 st.error("Invalid username/password.")
@@ -309,43 +284,25 @@ def auth_page():
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-def authed_nav():
-    nav = [("dashboard", "Dashboard"), ("ev", "EV Smart Routing"), ("sales", "Sales Forecasting"), ("parts", "Parts Procurement")]
-    current = st.session_state.get("page", "dashboard")
+def profile_tab():
+    user = st.session_state.get("user") or {}
+    st.subheader("Profile")
+    c1, c2 = st.columns([1, 1])
+    with c1:
+        st.write("**Username:**", user.get("username", "—"))
+        st.write("**Email:**", user.get("email", "—"))
+        st.write("**Role:**", user.get("role", "—"))
+    with c2:
+        st.write("**First Name:**", user.get("first_name", "—"))
+        st.write("**Last Name:**", user.get("last_name", "—"))
+        st.write("**Vehicle Type:**", user.get("vehicle_type", "—"))
 
-    st.markdown('<div class="navbar">', unsafe_allow_html=True)
-    cols = st.columns(len(nav) + 1)
-
-    for i, (key, label) in enumerate(nav):
-        with cols[i]:
-            cls = "navbtn-active" if key == current else "navbtn"
-            st.markdown(f'<div class="{cls}">', unsafe_allow_html=True)
-            if st.button(label, use_container_width=True, key=f"nav_{key}"):
-                st.session_state["page"] = key
-                st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-
-    with cols[-1]:
-        if st.button("Log out", use_container_width=True, key="nav_logout"):
-            st.session_state["authed"] = False
-            st.session_state["user"] = None
-            st.rerun()
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-def app_pages():
-    page = st.session_state.get("page", "dashboard")
-    if page == "dashboard":
-        dashboard.render()
-    elif page == "ev":
-        ev_routing.render()
-    elif page == "sales":
-        sales_forecasting.render()
-    elif page == "parts":
-        parts_procurement.render()
-    else:
-        dashboard.render()
+    st.divider()
+    if st.button("Log out", use_container_width=True):
+        st.session_state["authed"] = False
+        st.session_state["user"] = None
+        st.session_state["guest_tab"] = "Home"
+        st.rerun()
 
 
 def main():
@@ -358,13 +315,11 @@ def main():
     sidebar_panel()
     header_shell()
 
-    # NOT LOGGED IN: Home/Login tabs (smooth switch)
+    # Guest: smooth Home/Login tabs
     if not st.session_state.get("authed"):
-        # remember last selected tab
-        st.session_state.setdefault("guest_tab", "Home")
         tabs = st.tabs(["Home", "Login / Sign Up"])
 
-        if st.session_state["guest_tab"] == "Home":
+        if st.session_state.get("guest_tab") == "Login / Sign Up":
             with tabs[0]:
                 home_page()
             with tabs[1]:
@@ -374,12 +329,33 @@ def main():
                 home_page()
             with tabs[1]:
                 auth_page()
-
         return
 
-    # LOGGED IN: module nav + pages
-    authed_nav()
-    app_pages()
+    # Logged in: tabs for modules (smooth switching)
+    app_tabs = st.tabs(
+        [
+            "Dashboard",
+            "EV Smart Routing",
+            "Sales Forecasting",
+            "Parts Procurement",
+            "Profile",
+        ]
+    )
+
+    with app_tabs[0]:
+        dashboard.render()
+
+    with app_tabs[1]:
+        ev_routing.render()
+
+    with app_tabs[2]:
+        sales_forecasting.render()
+
+    with app_tabs[3]:
+        parts_procurement.render()
+
+    with app_tabs[4]:
+        profile_tab()
 
 
 if __name__ == "__main__":
