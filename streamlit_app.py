@@ -20,13 +20,13 @@ EV_OPTIONS = [
     "Other (EV)",
 ]
 
-# Local hero images 
+# Local hero images
 HOME_HERO = "assets/hero/home.jpg"
 ABOUT_BG = "assets/hero/about.jpg"
 FEATURES_BG = "assets/hero/features.jpg"
 PROCEED_BG = "assets/hero/proceed.jpg"
 
-# Local feature iamges
+# Local feature images
 FEATURE_MEDIA = {
     "ev": "assets/features/ev.jpg",
     "sales": "assets/features/sales.jpg",
@@ -39,9 +39,11 @@ We collect: first name, last name, username, email, selected EV type.
 Purpose: account creation and profile display.
 """
 
+
 def load_css():
     with open("assets/theme.css", "r", encoding="utf-8") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
 
 def _b64_file(path: str) -> str | None:
     if not os.path.exists(path):
@@ -49,30 +51,23 @@ def _b64_file(path: str) -> str | None:
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode("utf-8")
 
+
 def src_for_image(path: str) -> str:
     b64 = _b64_file(path)
     if not b64:
-        return ""  # will show gradient fallback
+        return ""  # shows gradient fallback
     ext = "jpg"
     if path.lower().endswith(".png"):
         ext = "png"
     return f"data:image/{ext};base64,{b64}"
 
-def get_qp_page(default="home") -> str:
-    qp = st.query_params
-    p = qp.get("p", default)
-    if isinstance(p, list):
-        p = p[0] if p else default
-    return p or default
-
-def set_qp_page(page: str):
-    st.query_params["p"] = page
 
 def init_state():
     st.session_state.setdefault("authed", False)
     st.session_state.setdefault("user", None)
+    st.session_state.setdefault("page", "home")  # home | auth | dashboard | ev | sales | parts
     st.session_state.setdefault("privacy_ack", False)
-    st.session_state["page"] = get_qp_page("home")
+
 
 def header_shell():
     user = st.session_state.get("user")
@@ -98,6 +93,7 @@ def header_shell():
         unsafe_allow_html=True,
     )
 
+
 def top_nav():
     if st.session_state.get("authed"):
         nav = [
@@ -115,12 +111,28 @@ def top_nav():
 
     current = st.session_state.get("page", "home")
 
-    items = []
-    for key, label in nav:
-        cls = "nav-item active" if key == current else "nav-item"
-        items.append(f'<a class="{cls}" href="?p={key}">{label}</a>')
+    st.markdown('<div class="navbar">', unsafe_allow_html=True)
+    cols = st.columns(len(nav) + (1 if st.session_state.get("authed") else 0))
 
-    st.markdown(f"<div class='navline'>{''.join(items)}</div>", unsafe_allow_html=True)
+    for i, (key, label) in enumerate(nav):
+        with cols[i]:
+            cls = "navbtn-active" if key == current else "navbtn"
+            st.markdown(f'<div class="{cls}">', unsafe_allow_html=True)
+            if st.button(label, use_container_width=True, key=f"nav_{key}"):
+                st.session_state["page"] = key
+                st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    if st.session_state.get("authed"):
+        with cols[-1]:
+            if st.button("Log out", use_container_width=True, key="nav_logout"):
+                st.session_state["authed"] = False
+                st.session_state["user"] = None
+                st.session_state["page"] = "home"
+                st.rerun()
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
 
 def sidebar_panel():
     st.sidebar.markdown("## Menu")
@@ -146,13 +158,17 @@ def sidebar_panel():
 
         st.sidebar.markdown("### Quick actions")
         if st.sidebar.button("Dashboard", use_container_width=True):
-            set_qp_page("dashboard"); st.rerun()
+            st.session_state["page"] = "dashboard"
+            st.rerun()
         if st.sidebar.button("Sales Forecasting", use_container_width=True):
-            set_qp_page("sales"); st.rerun()
+            st.session_state["page"] = "sales"
+            st.rerun()
         if st.sidebar.button("EV Smart Routing", use_container_width=True):
-            set_qp_page("ev"); st.rerun()
+            st.session_state["page"] = "ev"
+            st.rerun()
         if st.sidebar.button("Parts Procurement", use_container_width=True):
-            set_qp_page("parts"); st.rerun()
+            st.session_state["page"] = "parts"
+            st.rerun()
 
         st.sidebar.markdown("### Status (mock)")
         st.sidebar.markdown(
@@ -169,7 +185,7 @@ def sidebar_panel():
         if st.sidebar.button("Log out", use_container_width=True):
             st.session_state["authed"] = False
             st.session_state["user"] = None
-            set_qp_page("home")
+            st.session_state["page"] = "home"
             st.rerun()
     else:
         st.sidebar.markdown(
@@ -182,14 +198,17 @@ def sidebar_panel():
             unsafe_allow_html=True,
         )
         if st.sidebar.button("Login / Sign Up", use_container_width=True):
-            set_qp_page("auth"); st.rerun()
+            st.session_state["page"] = "auth"
+            st.rerun()
+
 
 def goto_protected(target_page: str):
     if st.session_state.get("authed"):
-        set_qp_page(target_page)
+        st.session_state["page"] = target_page
     else:
-        set_qp_page("auth")
+        st.session_state["page"] = "auth"
     st.rerun()
+
 
 def hero_section(kicker: str, title: str, sub: str, bg_path: str):
     src = src_for_image(bg_path)
@@ -209,6 +228,7 @@ def hero_section(kicker: str, title: str, sub: str, bg_path: str):
         unsafe_allow_html=True,
     )
 
+
 def feature_card(img_path: str, title: str, sub: str):
     src = src_for_image(img_path)
     st.markdown(
@@ -221,6 +241,7 @@ def feature_card(img_path: str, title: str, sub: str):
         """,
         unsafe_allow_html=True,
     )
+
 
 def home_page():
     hero_section(
@@ -271,8 +292,10 @@ def home_page():
     with mid:
         st.markdown('<div class="btn-ghost">', unsafe_allow_html=True)
         if st.button("PROCEED TO LOGIN / SIGN UP", use_container_width=True, key="proceed_login"):
-            set_qp_page("auth"); st.rerun()
+            st.session_state["page"] = "auth"
+            st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
+
 
 def auth_page():
     @st.dialog("Privacy Disclosure")
@@ -299,7 +322,7 @@ def auth_page():
                 if ok:
                     st.session_state["authed"] = True
                     st.session_state["user"] = user
-                    set_qp_page("dashboard")
+                    st.session_state["page"] = "dashboard"
                     st.rerun()
                 else:
                     st.error("Invalid username/password.")
@@ -343,6 +366,7 @@ def auth_page():
 
         st.markdown("</div>", unsafe_allow_html=True)
 
+
 def app_pages():
     page = st.session_state.get("page", "home")
     if page == "dashboard":
@@ -355,6 +379,7 @@ def app_pages():
         parts_procurement.render()
     else:
         home_page()
+
 
 def main():
     st.set_page_config(page_title=APP_TITLE, layout="wide")
@@ -379,11 +404,12 @@ def main():
         return
 
     if not st.session_state.get("authed"):
-        set_qp_page("auth")
+        st.session_state["page"] = "auth"
         auth_page()
         return
 
     app_pages()
+
 
 if __name__ == "__main__":
     main()
