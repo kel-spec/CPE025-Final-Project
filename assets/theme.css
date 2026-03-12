@@ -22,8 +22,6 @@ header[data-testid="stHeader"]{ background: transparent; }
   padding-bottom: 26px;
 }
 
-.small-muted{ color: var(--muted); font-size: 13px; }
-
 /* HEADER */
 .site-header{
   background: linear-gradient(180deg, rgba(18,22,30,0.92), rgba(12,14,18,0.92));
@@ -146,16 +144,6 @@ header[data-testid="stHeader"]{ background: transparent; }
   display:block;
 }
 
-/* CTA button */
-.btn-ghost .stButton button{
-  border-radius: 999px !important;
-  border: 1px solid rgba(255,255,255,0.85) !important;
-  background: transparent !important;
-  font-weight: 900 !important;
-  letter-spacing: 0.6px;
-}
-.btn-ghost .stButton button:hover{ background: rgba(255,255,255,0.10) !important; }
-
 /* AUTH CARD */
 .auth-card{
   background: rgba(12,16,23,0.70);
@@ -185,3 +173,63 @@ section[data-testid="stSidebar"] *{ color: rgba(255,255,255,0.90); }
 }
 .sidebar-label{ font-weight:900; letter-spacing:0.4px; opacity:0.9; margin-bottom:6px; }
 .sidebar-muted{ opacity:0.72; font-size:13px; }
+
+/* FOOTER (Bugatti-inspired template) */
+.site-footer{
+  margin-top: 24px;
+  padding: 26px 0 10px 0;
+  border-top: 1px solid rgba(255,255,255,0.10);
+}
+.footer-grid{
+  display:grid;
+  grid-template-columns: 1.2fr 1fr 1fr 1fr;
+  gap: 18px;
+}
+.footer-brand{
+  font-weight: 950;
+  letter-spacing: 0.6px;
+}
+.footer-note{
+  margin-top: 10px;
+  opacity: 0.72;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.footer-col-title{
+  font-weight: 950;
+  letter-spacing: 0.6px;
+  margin-bottom: 10px;
+  opacity: 0.92;
+}
+.footer-link{
+  display:block;
+  opacity: 0.78;
+  font-size: 13px;
+  margin: 6px 0;
+  text-decoration:none;
+  color: rgba(255,255,255,0.78);
+}
+.footer-link:hover{ opacity: 1; text-decoration: underline; }
+.footer-bottom{
+  margin-top: 18px;
+  display:flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  opacity: 0.70;
+  font-size: 12px;
+}
+.footer-social{
+  display:flex;
+  gap: 10px;
+  align-items:center;
+}
+.footer-pill{
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.04);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  opacity: 0.85;
+}
