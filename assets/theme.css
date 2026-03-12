@@ -1,10 +1,18 @@
 :root{
   --bg:#0B0E13;
-  --border:rgba(255,255,255,0.12);
   --text:rgba(255,255,255,0.92);
   --muted:rgba(255,255,255,0.72);
-  --brand:#2B4B6A;
-  --brand2:#1F3B55;
+
+  --border:rgba(255,255,255,0.12);
+
+  /* Toyota-ish neutrals */
+  --white:#ffffff;
+  --ink:#0c1017;
+  --ink2:#111827;
+
+  /* Accent */
+  --accent:#1F3B55;
+  --accent2:#2B4B6A;
 }
 
 html, body { background: var(--bg); color: var(--text); }
@@ -12,69 +20,91 @@ header[data-testid="stHeader"]{ background: transparent; }
 
 .block-container{
   max-width: 1320px;
-  padding-top: 10px;
-  padding-bottom: 30px;
+  padding-top: 0px;
+  padding-bottom: 26px;
 }
 
 .small-muted{ color: var(--muted); font-size: 13px; }
 hr { border-color: var(--border); }
 
-/* ---------- Shared Header ---------- */
-.dss-topbar{
-  background: linear-gradient(90deg, var(--brand2), var(--brand));
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 14px;
-  padding: 12px 16px;
-  margin: 0 0 12px 0;
+/* Hide Streamlit sidebar toggle */
+button[data-testid="collapsedControl"]{ display:none !important; }
+
+/* =========================
+   NEW HEADER (Toyota-inspired)
+   ========================= */
+.site-header{
+  background: var(--white);
+  color: var(--ink);
+  border-bottom: 1px solid rgba(0,0,0,0.10);
+  padding: 12px 0;
+  margin: 0 -9999px;
+  padding-left: 9999px;
+  padding-right: 9999px;
 }
 
-.dss-topbar-row{
+.site-header-inner{
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 18px;
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap: 12px;
+  gap: 18px;
 }
 
-.dss-brand{
+.brand-left{
   display:flex;
   align-items:center;
-  gap: 10px;
-  font-weight: 900;
-  letter-spacing:0.5px;
+  gap: 12px;
+  min-width: 220px;
 }
 
-.dss-brand-badge{
-  width: 34px;
-  height: 34px;
+.logo-box{
+  width: 42px;
+  height: 42px;
   border-radius: 10px;
-  background: rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.04);
   display:flex;
   align-items:center;
   justify-content:center;
+  overflow:hidden;
+}
+
+.logo-box img{
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.brand-text{
   font-weight: 900;
+  letter-spacing: 0.6px;
 }
 
-.dss-title{
-  font-size: 26px;
-  font-weight: 900;
-  margin-top: 6px;
+.header-right{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  min-width: 220px;
+  justify-content:flex-end;
+  font-size: 13px;
+  color: rgba(0,0,0,0.65);
 }
 
-.dss-sub{
-  margin-top: 2px;
-  color: rgba(255,255,255,0.80);
-  font-size: 14px;
-}
-
-/* ---------- Top nav as text underline ---------- */
+/* =========================
+   TOP NAV (hover highlight)
+   Streamlit radio styled as menu items
+   ========================= */
 .topnav div[role="radiogroup"]{
   display:flex !important;
   align-items:center;
-  gap: 22px;
+  justify-content:center;
+  gap: 8px;
   background: transparent !important;
   border: none !important;
   padding: 0 !important;
-  margin-top: 4px;
+  margin: 0 !important;
 }
 
 .topnav div[role="radiogroup"] > label{
@@ -84,6 +114,7 @@ hr { border-color: var(--border); }
   align-items:center !important;
 }
 
+/* hide the actual radio input */
 .topnav div[role="radiogroup"] > label > input{
   position:absolute !important;
   opacity:0 !important;
@@ -91,113 +122,155 @@ hr { border-color: var(--border); }
   height:0 !important;
 }
 
+/* the clickable “tab” */
 .topnav div[role="radiogroup"] > label > div{
   background: transparent !important;
   border: none !important;
-  padding: 0 !important;
+  padding: 10px 12px !important;
+  border-radius: 10px !important;
   font-weight: 800 !important;
   letter-spacing: 0.3px;
-  color: rgba(255,255,255,0.78) !important;
+  color: rgba(0,0,0,0.70) !important;
+  line-height: 1 !important;
 }
 
+/* hover highlight like Toyota header */
+.topnav div[role="radiogroup"] > label:hover > div{
+  background: rgba(0,0,0,0.06) !important;
+}
+
+/* active underline */
 .topnav div[role="radiogroup"] > label:has(input:checked) > div{
-  color: rgba(255,255,255,0.96) !important;
-  border-bottom: 2px solid rgba(255,255,255,0.80) !important;
-  padding-bottom: 6px !important;
+  color: rgba(0,0,0,0.92) !important;
+  background: rgba(0,0,0,0.06) !important;
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.75);
 }
 
-/* ---------- Hero sections ---------- */
-.hero{
-  position: relative;
-  min-height: 82vh;
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 16px;
-  overflow: hidden;
-  margin-bottom: 14px;
-  background: radial-gradient(900px 500px at 50% 35%, rgba(255,255,255,0.06), rgba(0,0,0,0.65)),
+/* =========================
+   HOME HERO (Toyota-like)
+   ========================= */
+.hero-wrap{
+  border-radius: 18px;
+  overflow:hidden;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: radial-gradient(1000px 600px at 30% 25%, rgba(255,255,255,0.06), rgba(0,0,0,0.70)),
               linear-gradient(180deg, rgba(20,24,32,0.85), rgba(5,6,8,0.92));
+  position: relative;
+  min-height: 520px;
+  margin-top: 16px;
 }
 
-.hero img{
+.hero-bg{
   position:absolute;
   inset:0;
   width:100%;
   height:100%;
   object-fit: cover;
   object-position:center;
-  filter: contrast(1.05) saturate(1.05);
-  opacity: 0.85;
+  opacity: 0.82;
+  filter: contrast(1.06) saturate(1.05);
 }
 
-.hero::after{
+.hero-wrap::after{
   content:"";
   position:absolute;
   inset:0;
-  background: radial-gradient(1000px 600px at 50% 35%, rgba(0,0,0,0.25), rgba(0,0,0,0.72)),
-              linear-gradient(90deg, rgba(0,0,0,0.55), rgba(0,0,0,0.35));
+  background: linear-gradient(90deg, rgba(0,0,0,0.70) 0%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.15) 100%);
 }
 
 .hero-content{
-  position: relative;
-  z-index: 2;
-  height: 100%;
-  min-height: 82vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
-  padding: 26px;
+  position:relative;
+  z-index:2;
+  padding: 42px 34px;
+  max-width: 1320px;
+  margin: 0 auto;
 }
-
-.hero-inner{ max-width: 980px; }
 
 .hero-kicker{
   font-weight: 900;
-  letter-spacing: 0.6px;
-  opacity: 0.85;
+  letter-spacing: 0.7px;
+  opacity: 0.92;
 }
 
 .hero-title{
-  font-size: 58px;
+  font-size: 54px;
   font-weight: 950;
-  line-height: 1.0;
+  line-height: 1.02;
   margin-top: 10px;
+  max-width: 18ch;
 }
 
 .hero-sub{
-  margin: 14px auto 0 auto;
-  max-width: 70ch;
-  color: rgba(255,255,255,0.80);
+  margin-top: 12px;
+  color: rgba(255,255,255,0.82);
+  max-width: 64ch;
   font-size: 15px;
 }
 
-/* ---------- Cards ---------- */
+.hero-cta{
+  margin-top: 18px;
+  display:flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-ghost .stButton button{
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,0.85) !important;
+  background: transparent !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.6px;
+}
+.btn-ghost .stButton button:hover{
+  background: rgba(255,255,255,0.10) !important;
+}
+
+.btn-solid .stButton button{
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  background: rgba(255,255,255,0.14) !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.6px;
+}
+.btn-solid .stButton button:hover{
+  background: rgba(255,255,255,0.20) !important;
+}
+
+/* =========================
+   Feature cards
+   ========================= */
+.card-grid{
+  margin-top: 16px;
+}
 .card{
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 14px;
 }
-
-.card-title{ font-weight: 900; margin-top: 8px; }
-.card-sub{ opacity: 0.75; margin-top: 6px; font-size: 13px; }
-
 .card-media{
-  border-radius: 12px;
-  overflow: hidden;
+  height: 160px;
+  border-radius: 14px;
+  overflow:hidden;
   border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.03);
+}
+.card-media img{
+  width:100%;
+  height:100%;
+  object-fit: cover;
+  display:block;
+}
+.card-title{
+  font-weight: 950;
+  margin-top: 12px;
+}
+.card-sub{
+  opacity: 0.75;
+  margin-top: 6px;
+  font-size: 13px;
 }
 
-/* Auth card */
-.auth-card{
-  background: rgba(12,16,23,0.70);
-  border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 12px;
-  padding: 16px;
-  backdrop-filter: blur(10px);
-}
-.auth-title{ font-size: 26px; font-weight: 900; margin-bottom: 6px; }
-.auth-sub{ opacity: 0.75; margin-bottom: 12px; }
-
-.stTextInput input, .stSelectbox select{ border-radius: 6px !important; }
-.stButton button{ border-radius: 8px !important; }
+/* Inputs/buttons general */
+.stTextInput input, .stSelectbox select{ border-radius: 8px !important; }
+.stButton button{ border-radius: 10px !important; }
