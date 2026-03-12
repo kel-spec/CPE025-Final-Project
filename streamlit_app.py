@@ -68,7 +68,7 @@ def header_shell():
           <div class="site-header-inner">
             <div class="brand-left">
               <div class="logo-box">{logo_html}</div>
-              <div class="brand-text">TOYOTA</div>
+              <div class="brand-text">TOYOTA DECISION SUPPORT SYSTEM</div>
             </div>
             <div class="header-right">Welcome, {uname} ({role})</div>
           </div>
