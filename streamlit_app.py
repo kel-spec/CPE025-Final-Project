@@ -255,7 +255,107 @@ def feature_card(img_path: str, title: str, sub: str):
         """,
         unsafe_allow_html=True,
     )
+def footer_block():
+    html = """
+    <style>
+      .site-footer{
+        padding: 26px 18px 12px 18px;
+        border-top: 1px solid rgba(255,255,255,0.10);
+        background: rgba(10,12,16,0.96);
+        color: rgba(255,255,255,0.90);
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      }
+      .footer-grid{
+        display:grid;
+        grid-template-columns: 1.2fr 1fr 1fr 1fr;
+        gap: 18px;
+        max-width: 1280px;
+        margin: 0 auto;
+      }
+      .footer-brand{ font-weight: 900; letter-spacing: 0.4px; }
+      .footer-note{
+        margin-top: 10px;
+        opacity: 0.75;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+      .footer-col-title{
+        font-weight: 900;
+        letter-spacing: 0.6px;
+        margin-bottom: 10px;
+        opacity: 0.95;
+        font-size: 13px;
+      }
+      .footer-link{
+        display:block;
+        opacity: 0.78;
+        font-size: 13px;
+        margin: 6px 0;
+      }
+      .footer-bottom{
+        max-width: 1280px;
+        margin: 18px auto 0 auto;
+        display:flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        opacity: 0.75;
+        font-size: 12px;
+      }
+      .footer-social{ display:flex; gap: 10px; align-items:center; }
+      .footer-pill{
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(255,255,255,0.04);
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        opacity: 0.9;
+      }
+      body{ margin:0; background: rgba(10,12,16,0.96); }
+    </style>
 
+    <div class="site-footer">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">© Technological Institute of the Philippines</div>
+          <div class="footer-note">
+            Toyota Decision Support System made by Group 4.
+          </div>
+        </div>
+
+        <div>
+          <div class="footer-col-title">PROJECT</div>
+          <div class="footer-link">Overview</div>
+          <div class="footer-link">EV routing</div>
+          <div class="footer-link">Sales Forecasting</div>
+          <div class="footer-link">Parts Procurement</div>
+        </div>
+
+        <div>
+          <div class="footer-col-title">POLICY</div>
+          <div class="footer-link">Privacy Disclosure</div>
+          <div class="footer-link">Terms of Use</div>
+          <div class="footer-link">Cookie Notice</div>
+          <div class="footer-link">Data Deletion Request</div>
+        </div>
+
+        <div>
+          <div class="footer-col-title">SOCIALS</div>
+          <div class="footer-link">GitHub: github.com/kel-spec/CPE025-Final-Project</div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div class="footer-social">
+          <span class="footer-pill">T</span>
+          <span class="footer-pill">I</span>
+          <span class="footer-pill">P</span>
+        </div>
+      </div>
+    </div>
+    """
+    components.html(html, height=330)
 
 def home_page():
     hero_section(
