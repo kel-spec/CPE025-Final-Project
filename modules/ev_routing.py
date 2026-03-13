@@ -203,7 +203,7 @@ def render():
         country_codes = st.text_input("Country codes (optional)", value="ph", help="e.g., 'ph'. Leave blank for global.")
 
     with right:
-        st.markdown("### EV settings (optional)")
+        st.markdown("### EV settings")
         range_km = st.number_input("Estimated range (km)", min_value=0.0, value=250.0, step=10.0)
         charger_radius = st.slider("Charger search radius (km)", min_value=2, max_value=30, value=10)
         max_chargers = st.slider("Max chargers to show", min_value=5, max_value=60, value=25)
