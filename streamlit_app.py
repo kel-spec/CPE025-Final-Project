@@ -9,7 +9,8 @@ from modules import dashboard, ev_routing, sales_forecasting, parts_procurement
 
 APP_TITLE = "Toyota Decision Support System"
 
-DB_PATH = "data/app.db"  # local sqlite file
+DB_PATH = "data/app.db"
+EXPORT_DIR = "data/exports"
 
 EV_OPTIONS = [
     "Toyota bZ4X",
@@ -95,27 +96,42 @@ def header_shell():
     )
 
 
-def _db_info():
+def _exports_count() -> int:
+    if not os.path.isdir(EXPORT_DIR):
+        return 0
+    try:
+        return len([f for f in os.listdir(EXPORT_DIR) if f.lower().endswith(".csv")])
+    except Exception:
+        return 0
+
+
+def _db_exists() -> bool:
+    return os.path.exists(DB_PATH)
+
+
+def _admin_db_details():
+    """
+    Admin-only details. Never show this to normal users.
+    """
     info = {
-        "exists": os.path.exists(DB_PATH),
         "abs_path": os.path.abspath(DB_PATH),
+        "exists": os.path.exists(DB_PATH),
         "size_bytes": None,
         "users_count": None,
-        "latest_users": [],
+        "latest_users": [],  # safe fields only
         "error": None,
     }
     if not info["exists"]:
         return info
+
     try:
         info["size_bytes"] = os.path.getsize(DB_PATH)
         con = sqlite3.connect(DB_PATH)
         cur = con.cursor()
-
-        # count users
         cur.execute("SELECT COUNT(*) FROM users")
         info["users_count"] = int(cur.fetchone()[0])
 
-        # latest users (safe fields only)
+        # safe fields only; still admin-only
         try:
             cur.execute(
                 """
@@ -127,7 +143,6 @@ def _db_info():
             )
             info["latest_users"] = cur.fetchall()
         except Exception:
-            # table schema might differ; ignore
             info["latest_users"] = []
 
         con.close()
@@ -137,47 +152,42 @@ def _db_info():
             con.close()
         except Exception:
             pass
+
     return info
 
 
 def sidebar_panel():
+    """
+    Sidebar: no other-user exposure.
+    Purpose: session + account summary + utilities only.
+    """
     st.sidebar.markdown("## Panel")
-    st.sidebar.caption("Account • Local Storage Proof • Utilities")
+    st.sidebar.caption("Session • Account")
 
-    # Local Storage Proof (always visible)
-    with st.sidebar.expander("Local Storage Proof", expanded=True):
-        info = _db_info()
-        st.write("**DB file:**", info["abs_path"])
-        st.write("**DB exists:**", "Yes" if info["exists"] else "No")
-        if info["size_bytes"] is not None:
-            st.write("**DB size (bytes):**", info["size_bytes"])
-        if info["users_count"] is not None:
-            st.write("**Users in DB:**", info["users_count"])
-
-        if info["latest_users"]:
-            st.write("**Latest users (safe fields):**")
-            for u, e, r in info["latest_users"]:
-                st.write(f"- {u} | {e} | {r}")
-
-        if info["error"]:
-            st.error(info["error"])
-
-    # Account panel
     if st.session_state.get("authed"):
         user = st.session_state.get("user") or {}
         username = user.get("username", "user")
         role = user.get("role", "user")
-        email = user.get("email", "—")
         vehicle_type = user.get("vehicle_type", "—")
 
         st.sidebar.markdown(
             f"""
             <div class="sidebar-card">
-              <div class="sidebar-label">Account</div>
+              <div class="sidebar-label">Signed in</div>
               <div class="sidebar-muted">User: {username}</div>
               <div class="sidebar-muted">Role: {role}</div>
-              <div class="sidebar-muted">Email: {email}</div>
               <div class="sidebar-muted">Vehicle: {vehicle_type}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        st.sidebar.markdown(
+            f"""
+            <div class="sidebar-card" style="margin-top:10px;">
+              <div class="sidebar-label">Storage</div>
+              <div class="sidebar-muted">Local DB: {"Yes" if _db_exists() else "No"}</div>
+              <div class="sidebar-muted">Forecast exports: {_exports_count()} CSV</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -194,6 +204,7 @@ def sidebar_panel():
             st.session_state["user"] = None
             st.session_state["guest_tab"] = "Home"
             st.rerun()
+
     else:
         st.sidebar.markdown(
             """
@@ -266,7 +277,7 @@ def home_page():
     with c1:
         feature_card(FEATURE_MEDIA["ev"], "EV Smart Routing", "Map + ETA visualization")
     with c2:
-        feature_card(FEATURE_MEDIA["sales"], "Sales Forecasting", "Forecast chart + output dataset + CSV export")
+        feature_card(FEATURE_MEDIA["sales"], "Sales Forecasting", "Forecast chart + dataset output + CSV export")
     with c3:
         feature_card(FEATURE_MEDIA["parts"], "Parts Procurement", "Stock vs demand monitoring")
 
@@ -347,16 +358,46 @@ def auth_page():
 
 def profile_tab():
     user = st.session_state.get("user") or {}
+    role = user.get("role", "user")
+
     st.subheader("Profile")
+
     c1, c2 = st.columns([1, 1])
     with c1:
         st.write("**Username:**", user.get("username", "—"))
         st.write("**Email:**", user.get("email", "—"))
-        st.write("**Role:**", user.get("role", "—"))
+        st.write("**Role:**", role)
     with c2:
         st.write("**First Name:**", user.get("first_name", "—"))
         st.write("**Last Name:**", user.get("last_name", "—"))
         st.write("**Vehicle Type:**", user.get("vehicle_type", "—"))
+
+    st.divider()
+
+    # Visible to everyone (no data leaks)
+    with st.expander("Storage status", expanded=False):
+        st.write("**Local database exists:**", "Yes" if _db_exists() else "No")
+        st.write("**Forecast exports saved:**", f"{_exports_count()} CSV file(s)")
+        st.caption("This confirms your account and exports are stored locally during runtime.")
+
+    # Admin-only proof (safe, but still restricted)
+    if role == "admin":
+        with st.expander("System proof (Admin only)", expanded=False):
+            info = _admin_db_details()
+            st.write("**DB absolute path:**", info["abs_path"])
+            st.write("**DB exists:**", "Yes" if info["exists"] else "No")
+            if info["size_bytes"] is not None:
+                st.write("**DB size (bytes):**", info["size_bytes"])
+            if info["users_count"] is not None:
+                st.write("**Users in DB:**", info["users_count"])
+
+            if info["latest_users"]:
+                st.write("**Latest users (safe fields):**")
+                for u, e, r in info["latest_users"]:
+                    st.write(f"- {u} | {e} | {r}")
+
+            if info["error"]:
+                st.error(info["error"])
 
 
 def main():
