@@ -14,6 +14,7 @@ import base64
 import os
 import sqlite3
 import streamlit as st
+import streamlit.components.v1 as components  # <-- REQUIRED FOR FOOTER
 
 from modules.auth import authenticate, create_user, ensure_default_admin
 from modules.db import init_db
@@ -140,18 +141,8 @@ def _admin_db_details():
         cur.execute("SELECT COUNT(*) FROM users")
         info["users_count"] = int(cur.fetchone()[0])
 
-        try:
-            cur.execute(
-                """
-                SELECT username, email, role
-                FROM users
-                ORDER BY id DESC
-                LIMIT 5
-                """
-            )
-            info["latest_users"] = cur.fetchall()
-        except Exception:
-            info["latest_users"] = []
+        # keep list empty for privacy (even admin can see count only here)
+        info["latest_users"] = []
 
         con.close()
     except Exception as e:
@@ -255,9 +246,12 @@ def feature_card(img_path: str, title: str, sub: str):
         """,
         unsafe_allow_html=True,
     )
+
+
 def footer_block():
     html = """
     <style>
+      html, body { margin:0; padding:0; background: rgba(10,12,16,0.96); }
       .site-footer{
         padding: 26px 18px 12px 18px;
         border-top: 1px solid rgba(255,255,255,0.10);
@@ -312,22 +306,19 @@ def footer_block():
         font-size: 12px;
         opacity: 0.9;
       }
-      body{ margin:0; background: rgba(10,12,16,0.96); }
     </style>
 
     <div class="site-footer">
       <div class="footer-grid">
         <div>
           <div class="footer-brand">© Technological Institute of the Philippines</div>
-          <div class="footer-note">
-            Toyota Decision Support System made by Group 4.
-          </div>
+          <div class="footer-note">Toyota Decision Support System made by Group 4.</div>
         </div>
 
         <div>
           <div class="footer-col-title">PROJECT</div>
           <div class="footer-link">Overview</div>
-          <div class="footer-link">EV routing</div>
+          <div class="footer-link">EV Routing</div>
           <div class="footer-link">Sales Forecasting</div>
           <div class="footer-link">Parts Procurement</div>
         </div>
@@ -355,7 +346,8 @@ def footer_block():
       </div>
     </div>
     """
-    components.html(html, height=330)
+    components.html(html, height=260)
+
 
 def home_page():
     hero_section(
@@ -391,6 +383,9 @@ def home_page():
         "Register your EV and access the system modules.",
         PROCEED_BG,
     )
+
+    # <-- FOOTER WAS NEVER CALLED BEFORE
+    footer_block()
 
 
 def auth_page():
