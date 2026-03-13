@@ -1,13 +1,15 @@
 import base64
 import os
+import sqlite3
 import streamlit as st
-import streamlit.components.v1 as components
 
 from modules.auth import authenticate, create_user, ensure_default_admin
 from modules.db import init_db
 from modules import dashboard, ev_routing, sales_forecasting, parts_procurement
 
 APP_TITLE = "Toyota Decision Support System"
+
+DB_PATH = "data/app.db"  # local sqlite file
 
 EV_OPTIONS = [
     "Toyota bZ4X",
@@ -93,10 +95,74 @@ def header_shell():
     )
 
 
+def _db_info():
+    info = {
+        "exists": os.path.exists(DB_PATH),
+        "abs_path": os.path.abspath(DB_PATH),
+        "size_bytes": None,
+        "users_count": None,
+        "latest_users": [],
+        "error": None,
+    }
+    if not info["exists"]:
+        return info
+    try:
+        info["size_bytes"] = os.path.getsize(DB_PATH)
+        con = sqlite3.connect(DB_PATH)
+        cur = con.cursor()
+
+        # count users
+        cur.execute("SELECT COUNT(*) FROM users")
+        info["users_count"] = int(cur.fetchone()[0])
+
+        # latest users (safe fields only)
+        try:
+            cur.execute(
+                """
+                SELECT username, email, role
+                FROM users
+                ORDER BY id DESC
+                LIMIT 5
+                """
+            )
+            info["latest_users"] = cur.fetchall()
+        except Exception:
+            # table schema might differ; ignore
+            info["latest_users"] = []
+
+        con.close()
+    except Exception as e:
+        info["error"] = str(e)
+        try:
+            con.close()
+        except Exception:
+            pass
+    return info
+
+
 def sidebar_panel():
     st.sidebar.markdown("## Panel")
-    st.sidebar.caption("Account • Status • Utilities")
+    st.sidebar.caption("Account • Local Storage Proof • Utilities")
 
+    # Local Storage Proof (always visible)
+    with st.sidebar.expander("Local Storage Proof", expanded=True):
+        info = _db_info()
+        st.write("**DB file:**", info["abs_path"])
+        st.write("**DB exists:**", "Yes" if info["exists"] else "No")
+        if info["size_bytes"] is not None:
+            st.write("**DB size (bytes):**", info["size_bytes"])
+        if info["users_count"] is not None:
+            st.write("**Users in DB:**", info["users_count"])
+
+        if info["latest_users"]:
+            st.write("**Latest users (safe fields):**")
+            for u, e, r in info["latest_users"]:
+                st.write(f"- {u} | {e} | {r}")
+
+        if info["error"]:
+            st.error(info["error"])
+
+    # Account panel
     if st.session_state.get("authed"):
         user = st.session_state.get("user") or {}
         username = user.get("username", "user")
@@ -117,21 +183,8 @@ def sidebar_panel():
             unsafe_allow_html=True,
         )
 
-        st.sidebar.markdown(
-            """
-            <div class="sidebar-card" style="margin-top:10px;">
-              <div class="sidebar-label">System health</div>
-              <div class="sidebar-muted">DB: connected (local)</div>
-              <div class="sidebar-muted">Sales model: available</div>
-              <div class="sidebar-muted">Routing: mock</div>
-              <div class="sidebar-muted">Procurement: mock</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        st.sidebar.markdown("### Session actions")
-        if st.sidebar.button("Clear UI cache (refresh)", use_container_width=True):
+        st.sidebar.markdown("### Utilities")
+        if st.sidebar.button("Clear UI cache", use_container_width=True):
             st.cache_data.clear()
             st.cache_resource.clear()
             st.rerun()
@@ -189,108 +242,6 @@ def feature_card(img_path: str, title: str, sub: str):
     )
 
 
-def footer_block():
-    html = """
-    <style>
-      .site-footer{
-        padding: 26px 18px 12px 18px;
-        border-top: 1px solid rgba(255,255,255,0.10);
-        background: rgba(10,12,16,0.96);
-        color: rgba(255,255,255,0.90);
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      }
-      .footer-grid{
-        display:grid;
-        grid-template-columns: 1.2fr 1fr 1fr 1fr;
-        gap: 18px;
-        max-width: 1280px;
-        margin: 0 auto;
-      }
-      .footer-brand{ font-weight: 900; letter-spacing: 0.4px; }
-      .footer-note{
-        margin-top: 10px;
-        opacity: 0.75;
-        font-size: 13px;
-        line-height: 1.6;
-      }
-      .footer-col-title{
-        font-weight: 900;
-        letter-spacing: 0.6px;
-        margin-bottom: 10px;
-        opacity: 0.95;
-        font-size: 13px;
-      }
-      .footer-link{
-        display:block;
-        opacity: 0.78;
-        font-size: 13px;
-        margin: 6px 0;
-      }
-      .footer-bottom{
-        max-width: 1280px;
-        margin: 18px auto 0 auto;
-        display:flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 12px;
-        flex-wrap: wrap;
-        opacity: 0.75;
-        font-size: 12px;
-      }
-      .footer-social{ display:flex; gap: 10px; align-items:center; }
-      .footer-pill{
-        border: 1px solid rgba(255,255,255,0.14);
-        background: rgba(255,255,255,0.04);
-        padding: 6px 10px;
-        border-radius: 999px;
-        font-size: 12px;
-        opacity: 0.9;
-      }
-      body{ margin:0; background: rgba(10,12,16,0.96); }
-    </style>
-
-    <div class="site-footer">
-      <div class="footer-grid">
-        <div>
-          <div class="footer-brand">© Technological Institute of the Philippines</div>
-          <div class="footer-note">
-            Toyota Decision Support System made by Group 4.
-          </div>
-        </div>
-
-        <div>
-          <div class="footer-col-title">PROJECT</div>
-          <div class="footer-link">Overview</div>
-          <div class="footer-link">EV routing</div>
-          <div class="footer-link">Sales Forecasting</div>
-          <div class="footer-link">Parts Procurement</div>
-        </div>
-
-        <div>
-          <div class="footer-col-title">POLICY</div>
-          <div class="footer-link">Privacy Disclosure</div>
-          <div class="footer-link">Terms of Use</div>
-          <div class="footer-link">Cookie Notice</div>
-          <div class="footer-link">Data Deletion Request</div>
-        </div>
-
-        <div>
-          <div class="footer-col-title">SOCIALS</div>
-          <div class="footer-link">GitHub: github.com/kel-spec/CPE025-Final-Project</div>
-        </div>
-      </div>
-
-      <div class="footer-bottom">
-        <div class="footer-social">
-          <span class="footer-pill">T</span>
-          <span class="footer-pill">I</span>
-          <span class="footer-pill">P</span>
-        </div>
-      </div>
-    </div>
-    """
-    components.html(html, height=330)
-
 def home_page():
     hero_section(
         "TOYOTA",
@@ -307,7 +258,7 @@ def home_page():
     hero_section(
         "FEATURES",
         "Core features",
-        "Sign in to access modules. Sales Forecasting is functional and demo-ready.",
+        "Sign in to access modules. Sales Forecasting is functional and exportable.",
         FEATURES_BG,
     )
 
@@ -315,7 +266,7 @@ def home_page():
     with c1:
         feature_card(FEATURE_MEDIA["ev"], "EV Smart Routing", "Map + ETA visualization")
     with c2:
-        feature_card(FEATURE_MEDIA["sales"], "Sales Forecasting", "Model-driven forecast charts")
+        feature_card(FEATURE_MEDIA["sales"], "Sales Forecasting", "Forecast chart + output dataset + CSV export")
     with c3:
         feature_card(FEATURE_MEDIA["parts"], "Parts Procurement", "Stock vs demand monitoring")
 
@@ -325,8 +276,6 @@ def home_page():
         "Register your EV and access the system modules.",
         PROCEED_BG,
     )
-
-    footer_block()
 
 
 def auth_page():
@@ -434,9 +383,7 @@ def main():
                 auth_page()
         return
 
-    app_tabs = st.tabs(
-        ["Dashboard", "EV Smart Routing", "Sales Forecasting", "Parts Procurement", "Profile"]
-    )
+    app_tabs = st.tabs(["Dashboard", "EV Smart Routing", "Sales Forecasting", "Parts Procurement", "Profile"])
     with app_tabs[0]:
         dashboard.render()
     with app_tabs[1]:
