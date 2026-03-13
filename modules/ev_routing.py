@@ -189,7 +189,7 @@ def _render_map(payload: Dict[str, Any]) -> None:
 
 def render():
     st.markdown("## EV Smart Routing")
-    st.caption("OSRM (routing) + Nominatim (geocoding) + OpenChargeMap (chargers). Map persists after compute.")
+    st.caption("Type in, Starting point to Destination point to start routing.")
 
     # init storage
     st.session_state.setdefault("ev_route_payload", None)
