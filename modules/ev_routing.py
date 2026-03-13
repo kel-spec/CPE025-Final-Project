@@ -1,57 +1,313 @@
+import math
+from typing import Any, Dict, List, Optional, Tuple
+
+import requests
 import streamlit as st
-import pandas as pd
-import numpy as np
-import folium
 from streamlit_folium import st_folium
+import folium
+
+
+ORS_GEOCODE_URL = "https://api.openrouteservice.org/geocode/search"
+ORS_DIRECTIONS_URL = "https://api.openrouteservice.org/v2/directions/driving-car"
+OCM_URL = "https://api.openchargemap.io/v3/poi/"
+
+
+def _get_secret(name: str) -> Optional[str]:
+    try:
+        return st.secrets.get(name)  # type: ignore[attr-defined]
+    except Exception:
+        return None
+
+
+def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    r = 6371.0
+    p1 = math.radians(lat1)
+    p2 = math.radians(lat2)
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dlon / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return r * c
+
+
+@st.cache_data(show_spinner=False)
+def ors_geocode(text: str, country: str = "PH") -> Optional[Tuple[float, float, str]]:
+    """
+    Returns (lat, lon, label) using ORS geocoder (Pelias).
+    """
+    api_key = _get_secret("ORS_API_KEY")
+    if not api_key:
+        raise RuntimeError("Missing ORS_API_KEY in secrets.")
+
+    params = {
+        "api_key": api_key,
+        "text": text,
+        "size": 1,
+    }
+    # Optional country filter
+    if country:
+        params["boundary.country"] = country
+
+    r = requests.get(ORS_GEOCODE_URL, params=params, timeout=20)
+    r.raise_for_status()
+    data = r.json()
+
+    features = data.get("features", [])
+    if not features:
+        return None
+
+    f0 = features[0]
+    coords = f0["geometry"]["coordinates"]  # [lon, lat]
+    label = f0["properties"].get("label", text)
+    lon, lat = float(coords[0]), float(coords[1])
+    return lat, lon, label
+
+
+@st.cache_data(show_spinner=False)
+def ors_directions(start_lonlat: Tuple[float, float], end_lonlat: Tuple[float, float]) -> Dict[str, Any]:
+    """
+    Returns dict with:
+    - distance_km
+    - duration_min
+    - coords_latlon: List[(lat, lon)] polyline
+    """
+    api_key = _get_secret("ORS_API_KEY")
+    if not api_key:
+        raise RuntimeError("Missing ORS_API_KEY in secrets.")
+
+    headers = {
+        "Authorization": api_key,
+        "Content-Type": "application/json",
+    }
+    body = {
+        "coordinates": [
+            [start_lonlat[0], start_lonlat[1]],
+            [end_lonlat[0], end_lonlat[1]],
+        ],
+    }
+
+    r = requests.post(ORS_DIRECTIONS_URL, headers=headers, json=body, timeout=30)
+    r.raise_for_status()
+    data = r.json()
+
+    feat = data["features"][0]
+    summary = feat["properties"]["summary"]
+    distance_km = float(summary["distance"]) / 1000.0
+    duration_min = float(summary["duration"]) / 60.0
+
+    # ORS returns LineString coordinates in [lon, lat]
+    line = feat["geometry"]["coordinates"]
+    coords_latlon = [(float(lat), float(lon)) for lon, lat in line]
+
+    return {
+        "distance_km": distance_km,
+        "duration_min": duration_min,
+        "coords_latlon": coords_latlon,
+    }
+
+
+@st.cache_data(show_spinner=False)
+def ocm_chargers_near(lat: float, lon: float, radius_km: float = 10.0, max_results: int = 30) -> List[Dict[str, Any]]:
+    """
+    OpenChargeMap POI search near a point.
+    Key is optional but recommended (rate limits).
+    """
+    key = _get_secret("OCM_API_KEY")
+    params = {
+        "output": "json",
+        "latitude": lat,
+        "longitude": lon,
+        "distance": radius_km,
+        "distanceunit": "KM",
+        "maxresults": max_results,
+        "compact": "true",
+        "verbose": "false",
+    }
+    if key:
+        params["key"] = key
+
+    r = requests.get(OCM_URL, params=params, timeout=30)
+    r.raise_for_status()
+    return r.json()
+
+
+def _pick_midpoint(coords_latlon: List[Tuple[float, float]]) -> Tuple[float, float]:
+    if not coords_latlon:
+        return 0.0, 0.0
+    return coords_latlon[len(coords_latlon) // 2]
+
+
+def _best_charger(chargers: List[Dict[str, Any]], target_lat: float, target_lon: float) -> Optional[Dict[str, Any]]:
+    best = None
+    best_d = 1e9
+    for c in chargers:
+        addr = c.get("AddressInfo", {})
+        lat = addr.get("Latitude")
+        lon = addr.get("Longitude")
+        if lat is None or lon is None:
+            continue
+        d = _haversine_km(target_lat, target_lon, float(lat), float(lon))
+        if d < best_d:
+            best_d = d
+            best = c
+    return best
+
+
+def _render_map(
+    start: Tuple[float, float],
+    end: Tuple[float, float],
+    route_coords: List[Tuple[float, float]],
+    chargers: List[Dict[str, Any]],
+    recommended: Optional[Dict[str, Any]],
+) -> None:
+    # Center map around midpoint of route (fallback to start)
+    if route_coords:
+        center = _pick_midpoint(route_coords)
+    else:
+        center = start
+
+    m = folium.Map(location=center, zoom_start=12, control_scale=True, tiles="CartoDB dark_matter")
+
+    # Start / End markers
+    folium.Marker(
+        location=start,
+        tooltip="Start",
+        icon=folium.Icon(color="green", icon="play"),
+    ).add_to(m)
+
+    folium.Marker(
+        location=end,
+        tooltip="Destination",
+        icon=folium.Icon(color="red", icon="stop"),
+    ).add_to(m)
+
+    # Route polyline
+    if route_coords:
+        folium.PolyLine(route_coords, weight=5, opacity=0.85).add_to(m)
+
+    # Charger markers
+    for c in chargers:
+        addr = c.get("AddressInfo", {})
+        lat = addr.get("Latitude")
+        lon = addr.get("Longitude")
+        if lat is None or lon is None:
+            continue
+
+        title = addr.get("Title", "Charging Station")
+        town = addr.get("Town", "")
+        pop = f"<b>{title}</b><br/>{town}"
+
+        folium.CircleMarker(
+            location=(float(lat), float(lon)),
+            radius=6,
+            opacity=0.9,
+            fill=True,
+            fill_opacity=0.8,
+            popup=folium.Popup(pop, max_width=320),
+        ).add_to(m)
+
+    # Recommended charger highlight
+    if recommended:
+        addr = recommended.get("AddressInfo", {})
+        rlat = addr.get("Latitude")
+        rlon = addr.get("Longitude")
+        if rlat is not None and rlon is not None:
+            title = addr.get("Title", "Recommended Stop")
+            folium.Marker(
+                location=(float(rlat), float(rlon)),
+                tooltip="Recommended Charging Stop",
+                popup=title,
+                icon=folium.Icon(color="blue", icon="flash"),
+            ).add_to(m)
+
+    st_folium(m, width="100%", height=520)
+
 
 def render():
-    st.markdown(
-        """
-        <div class="dss-section">
-          <div class="dss-section-head">EV Smart Routing</div>
-          <div class="dss-section-body">
-        """,
-        unsafe_allow_html=True,
-    )
+    st.markdown("## EV Smart Routing")
+    st.caption("Routing + map + EV charger overlay using OpenRouteService and OpenChargeMap.")
 
-    left, right = st.columns([1, 2], gap="large")
+    ors_key = _get_secret("ORS_API_KEY")
+    if not ors_key:
+        st.error("Missing ORS_API_KEY. Add it to .streamlit/secrets.toml (local) or Streamlit Cloud Secrets.")
+        return
+
+    left, right = st.columns([2, 1], vertical_alignment="top")
 
     with left:
-        st.markdown('<div class="dss-card">', unsafe_allow_html=True)
-        st.subheader("Inputs")
-        battery = st.slider("Battery (%)", 0, 100, 55)
-        origin = st.text_input("Origin", "Toyota QC")
-        destination = st.text_input("Destination", "BGC Taguig")
-        optimize_for = st.selectbox("Optimize for", ["Fastest", "Shortest", "Least Charging Stops"])
-
-        st.markdown("---")
-        st.subheader("ETAs (Mock)")
-        df = pd.DataFrame({
-            "Stop": ["Charger A", "Charger B", "Destination"],
-            "Distance (km)": [5, 10, 18],
-            "ETA (min)": [12, 25, 44],
-        })
-        st.dataframe(df, use_container_width=True, hide_index=True)
-        st.caption(f"Battery: {battery}% | Optimize: {optimize_for}")
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("### Route inputs")
+        start_text = st.text_input("Start location", value="Quezon City, Metro Manila")
+        end_text = st.text_input("Destination", value="Makati, Metro Manila")
+        country = st.text_input("Country code (optional)", value="PH", help="Use ISO country code, e.g., PH. Leave blank for global.")
 
     with right:
-        st.markdown('<div class="dss-card">', unsafe_allow_html=True)
-        st.subheader("Map (Mock)")
-        center = (14.5995, 120.9842)
-        m = folium.Map(location=center, zoom_start=12, tiles="CartoDB positron")
+        st.markdown("### EV settings (optional)")
+        range_km = st.number_input("Estimated range (km)", min_value=0.0, value=250.0, step=10.0)
+        charger_radius = st.slider("Charger search radius (km)", min_value=2, max_value=30, value=10)
+        max_chargers = st.slider("Max chargers to show", min_value=5, max_value=60, value=25)
 
-        rng = np.random.default_rng(7)
-        pts = [(center[0] + float(rng.normal(0, 0.02)), center[1] + float(rng.normal(0, 0.02))) for _ in range(7)]
+    st.divider()
 
-        folium.Marker(pts[0], tooltip=f"Origin: {origin}", icon=folium.Icon(color="blue")).add_to(m)
-        folium.Marker(pts[-1], tooltip=f"Destination: {destination}", icon=folium.Icon(color="red")).add_to(m)
+    if st.button("Compute Route", use_container_width=True):
+        with st.spinner("Geocoding start/destination..."):
+            start = ors_geocode(start_text, country=country.strip() or "")
+            end = ors_geocode(end_text, country=country.strip() or "")
 
-        for i, p in enumerate(pts[1:-1], start=1):
-            folium.CircleMarker(p, radius=6, tooltip=f"Charger {i}", color="#2B4B6A", fill=True).add_to(m)
+        if not start or not end:
+            st.error("Could not geocode one or both locations. Try more specific addresses.")
+            return
 
-        folium.PolyLine(pts, color="#2B4B6A", weight=5, opacity=0.9).add_to(m)
-        st_folium(m, height=520, use_container_width=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+        start_lat, start_lon, start_label = start
+        end_lat, end_lon, end_label = end
 
-    st.markdown("</div></div>", unsafe_allow_html=True)
+        with st.spinner("Computing route..."):
+            route = ors_directions((start_lon, start_lat), (end_lon, end_lat))
+
+        distance_km = route["distance_km"]
+        duration_min = route["duration_min"]
+        coords_latlon = route["coords_latlon"]
+
+        # Summary
+        s1, s2, s3 = st.columns(3)
+        s1.metric("Distance (km)", f"{distance_km:.1f}")
+        s2.metric("ETA (minutes)", f"{duration_min:.0f}")
+        if range_km > 0:
+            s3.metric("Range check", "OK" if distance_km <= range_km else "Needs charge")
+
+        # Chargers near the route midpoint
+        mid_lat, mid_lon = _pick_midpoint(coords_latlon)
+        with st.spinner("Loading EV chargers near route..."):
+            chargers = ocm_chargers_near(mid_lat, mid_lon, radius_km=float(charger_radius), max_results=int(max_chargers))
+
+        recommended = None
+        if range_km > 0 and distance_km > range_km and chargers:
+            # recommend the closest charger to midpoint (simple, demo-ready)
+            recommended = _best_charger(chargers, mid_lat, mid_lon)
+
+        st.markdown("### Map")
+        _render_map(
+            start=(start_lat, start_lon),
+            end=(end_lat, end_lon),
+            route_coords=coords_latlon,
+            chargers=chargers,
+            recommended=recommended,
+        )
+
+        # Charger list
+        st.markdown("### Charger list (near route midpoint)")
+        rows = []
+        for c in chargers:
+            addr = c.get("AddressInfo", {})
+            rows.append(
+                {
+                    "name": addr.get("Title", "Charging Station"),
+                    "town": addr.get("Town", ""),
+                    "address": addr.get("AddressLine1", ""),
+                    "lat": addr.get("Latitude", ""),
+                    "lon": addr.get("Longitude", ""),
+                }
+            )
+        if rows:
+            st.dataframe(rows, use_container_width=True)
+        else:
+            st.info("No chargers returned for this area. Increase radius or try a different route.")
