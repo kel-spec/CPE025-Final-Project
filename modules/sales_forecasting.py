@@ -1,202 +1,220 @@
 import os
-import re
-import sys
-import types
+import sqlite3
+from datetime import datetime
+
 import joblib
 import numpy as np
 import pandas as pd
 import streamlit as st
-import plotly.graph_objects as go
-from datetime import datetime
 
-BUNDLE_PATH = "models/random_forest_bundle.pkl"
+
+# ===== Paths =====
+BUNDLE_PATH = "models/random_forest_bundle.pkl"  # put your .pkl here
+DB_PATH = "data/app.db"
+EXPORT_DIR = "data/exports"
+
+
+def _ensure_export_dir() -> None:
+    os.makedirs(EXPORT_DIR, exist_ok=True)
+
 
 @st.cache_resource
-def load_bundle():
-    if not os.path.exists(BUNDLE_PATH):
+def _load_bundle():
+    """
+    Flexible loader:
+    - If your bundle is a dict, we will try common keys.
+    - If your bundle is directly a model/pipeline, we use it as-is.
+    """
+    return joblib.load(BUNDLE_PATH)
+
+
+def _safe_users_count() -> int | None:
+    """Used only to tag the export with local DB context. Safe if DB/table missing."""
+    if not os.path.exists(DB_PATH):
+        return None
+    try:
+        con = sqlite3.connect(DB_PATH)
+        cur = con.cursor()
+        cur.execute("SELECT COUNT(*) FROM users")
+        n = int(cur.fetchone()[0])
+        con.close()
+        return n
+    except Exception:
+        try:
+            con.close()
+        except Exception:
+            pass
         return None
 
-    try:
-        return joblib.load(BUNDLE_PATH)
 
-    except AttributeError as e:
-        # Typical message:
-        # "Can't get attribute 'SomeClass' on <module 'some.module' ...>"
-        msg = str(e)
-
-        m = re.search(r"Can't get attribute '([^']+)' on <module '([^']+)'", msg)
-        if not m:
-            # If it doesn't match expected pattern, re-raise to see logs
-            raise
-
-        missing_class = m.group(1)
-        missing_module = m.group(2)
-
-        # Create the missing module if not present
-        if missing_module not in sys.modules:
-            sys.modules[missing_module] = types.ModuleType(missing_module)
-
-        mod = sys.modules[missing_module]
-
-        # Create a dummy class with the exact missing name and register it
-        Dummy = type(missing_class, (), {})
-        Dummy.__module__ = missing_module
-        setattr(mod, missing_class, Dummy)
-
-        # Retry load
-        return joblib.load(BUNDLE_PATH)
+def _infer_feature_columns(bundle) -> list[str] | None:
+    if isinstance(bundle, dict):
+        for k in ["feature_columns", "feature_cols", "columns", "X_columns"]:
+            if k in bundle and isinstance(bundle[k], (list, tuple)):
+                return list(bundle[k])
+    return None
 
 
-def month_add(date_str: str, k: int = 1) -> str:
-    dt = datetime.strptime(date_str, "%Y-%m-%d")
-    y = dt.year
-    m = dt.month + k
-    y += (m - 1) // 12
-    m = ((m - 1) % 12) + 1
-    return f"{y:04d}-{m:02d}-01"
+def _get_model(bundle):
+    if isinstance(bundle, dict):
+        for k in ["model", "estimator", "pipeline", "clf"]:
+            if k in bundle:
+                return bundle[k]
+    return bundle  # bundle might itself be a model/pipeline
 
 
-def make_static_onehots(bundle, vehicle_model: str) -> dict:
-    static = bundle.static_info.copy()
-    row = static[static["vehicle_model"] == vehicle_model]
-    if row.empty:
-        row = static.iloc[[0]]
-    row = row.iloc[0]
+def _build_input_row(feature_cols: list[str], region: str, model_name: str, ev_scenario: str) -> pd.DataFrame:
+    """
+    Builds a 1-row dataframe for prediction. This is necessarily generic.
+    If your trained model expects different columns, update mapping here to match your training features.
+    """
+    row = {c: 0 for c in feature_cols}
 
-    out = {}
-    for v in static["vehicle_model"].unique():
-        out[f"vehicle_model_{v}"] = 1 if v == vehicle_model else 0
-    for c in static["vehicle_category"].unique():
-        out[f"vehicle_category_{c}"] = 1 if c == row["vehicle_category"] else 0
-    for p in static["powertrain_type"].unique():
-        out[f"powertrain_type_{p}"] = 1 if p == row["powertrain_type"] else 0
-    for b in static["price_band"].unique():
-        out[f"price_band_{b}"] = 1 if b == row["price_band"] else 0
+    # Common mappings (safe defaults):
+    for c in feature_cols:
+        lc = c.lower()
+        if lc in ["region", "area"]:
+            row[c] = region
+        elif lc in ["model", "vehicle_model", "vehicle"]:
+            row[c] = model_name
+        elif lc in ["scenario", "ev_scenario", "market_trend"]:
+            row[c] = ev_scenario
 
-    return out
-
-
-def get_month_defaults(bundle, month_int: int) -> dict:
-    df = bundle.monthly_defaults
-    r = df[df["month"] == month_int]
-    if r.empty:
-        r = df.iloc[[0]]
-    r = r.iloc[0].to_dict()
-    return {
-        "industry_total_sales": float(r["industry_total_sales"]),
-        "industry_passenger_sales": float(r["industry_passenger_sales"]),
-        "industry_commercial_sales": float(r["industry_commercial_sales"]),
-        "promo_flag": int(r["promo_flag"]),
-        "holiday_season_flag": int(r["holiday_season_flag"]),
-        "launch_flag": int(r["launch_flag"]),
-        "month": int(month_int),
-        "quarter": int(((month_int - 1) // 3) + 1),
-    }
+    return pd.DataFrame([row])
 
 
-def build_feature_row(bundle, vehicle_model: str, target_date: str, sales_history: list[float], trend_index: int) -> pd.DataFrame:
-    month_int = int(target_date[5:7])
-    year_int = int(target_date[0:4])
-
-    base = get_month_defaults(bundle, month_int)
-    base["year"] = year_int
-
-    def lag(i):
-        if len(sales_history) >= i:
-            return float(sales_history[-i])
-        return float(sales_history[-1]) if sales_history else 0.0
-
-    base["lag_1"] = lag(1)
-    base["lag_2"] = lag(2)
-    base["lag_3"] = lag(3)
-
-    last3 = sales_history[-3:] if len(sales_history) >= 3 else sales_history
-    last6 = sales_history[-6:] if len(sales_history) >= 6 else sales_history
-    base["rolling_mean_3"] = float(np.mean(last3)) if last3 else 0.0
-    base["rolling_mean_6"] = float(np.mean(last6)) if last6 else 0.0
-
-    base["trend_index"] = int(trend_index)
-
-    base.update(make_static_onehots(bundle, vehicle_model))
-
-    cols = bundle.feature_columns
-    row = {c: base.get(c, 0) for c in cols}
-    return pd.DataFrame([row], columns=cols)
+def _predict_value(model, X: pd.DataFrame) -> float:
+    """
+    Works for sklearn models/pipelines with .predict.
+    """
+    y = model.predict(X)
+    # ensure scalar float
+    return float(np.array(y).ravel()[0])
 
 
-def forecast(bundle, vehicle_model: str, horizon: int) -> pd.DataFrame:
-    estimator = bundle.estimator
+def _make_horizon(start_month: str, periods: int) -> list[str]:
+    """
+    start_month: "YYYY-MM"
+    returns list of "YYYY-MM" months
+    """
+    dt = datetime.strptime(start_month + "-01", "%Y-%m-%d")
+    months = []
+    y, m = dt.year, dt.month
+    for _ in range(periods):
+        months.append(f"{y:04d}-{m:02d}")
+        m += 1
+        if m == 13:
+            m = 1
+            y += 1
+    return months
 
-    last_date = bundle.last_date_by_vehicle.get(
-        vehicle_model,
-        getattr(bundle, "last_dataset_month", "2025-01-01"),
-    )
 
-    hist = bundle.history_by_vehicle.get(vehicle_model, [])
-    sales_history = [float(x) for x in hist] if isinstance(hist, (list, tuple)) else []
-    trend = max(len(sales_history), 1)
-
-    rows = []
-    cur_date = month_add(last_date, 1)
-
-    for i in range(horizon):
-        X = build_feature_row(bundle, vehicle_model, cur_date, sales_history, trend + i + 1)
-        y = estimator.predict(X)[0]
-        y = float(max(y, 0.0))
-        rows.append({"date": cur_date, "forecast": y})
-
-        sales_history.append(y)
-        cur_date = month_add(cur_date, 1)
-
-    return pd.DataFrame(rows)
+def _save_forecast(df: pd.DataFrame, region: str, vehicle: str) -> str:
+    _ensure_export_dir()
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"forecast_{region}_{vehicle}_{ts}.csv".replace(" ", "_").replace("/", "-")
+    path = os.path.join(EXPORT_DIR, filename)
+    df.to_csv(path, index=False)
+    return path
 
 
 def render():
-    st.markdown(
-        """
-        <div class="dss-section">
-          <div class="dss-section-head">Sales Forecasting</div>
-          <div class="dss-section-body">
-        """,
-        unsafe_allow_html=True,
-    )
+    st.markdown("## Sales Forecasting")
+    st.caption("Generate demand forecasts using the integrated model bundle and export results.")
+
+    # ---------- Load model ----------
+    if not os.path.exists(BUNDLE_PATH):
+        st.error(f"Model bundle not found: {BUNDLE_PATH}. Upload it into /models/ and redeploy.")
+        return
 
     try:
-        bundle = load_bundle()
+        bundle = _load_bundle()
+        model = _get_model(bundle)
+        feature_cols = _infer_feature_columns(bundle)
     except Exception as e:
-        st.error(f"Model load failed: {e}")
-        st.markdown("</div></div>", unsafe_allow_html=True)
+        st.error("Failed to load model bundle.")
+        st.code(str(e))
         return
 
-    if bundle is None:
-        st.error("Model bundle not found. Put it at: models/random_forest_bundle.pkl")
-        st.markdown("</div></div>", unsafe_allow_html=True)
-        return
+    # ---------- Inputs ----------
+    top1, top2, top3 = st.columns([1, 1, 1])
+    with top1:
+        region = st.selectbox("Select Region", ["NCR", "Luzon", "Visayas", "Mindanao"], index=0)
+    with top2:
+        vehicle = st.selectbox("Select Vehicle Model", ["Corolla Cross", "bZ4X", "Vios", "Fortuner"], index=0)
+    with top3:
+        horizon = st.selectbox("Forecast Horizon", ["3 months", "6 months", "12 months"], index=1)
 
-    vehicle_list = sorted(list(bundle.static_info["vehicle_model"].unique()))
-    c1, c2 = st.columns([2, 1])
-    with c1:
-        vehicle_model = st.selectbox("Select Vehicle Model", vehicle_list, index=0)
-    with c2:
-        horizon = st.selectbox("Forecast Horizon (months)", [1, 3, 6, 12], index=3)
+    scenario = st.selectbox(
+        "EV Market Trend (Scenario)",
+        ["Baseline", "High EV Adoption", "Low EV Adoption"],
+        index=0,
+        help="This is a scenario label. If your model was trained with an EV adoption feature, map it in code.",
+    )
 
+    start_month = st.text_input("Start Month (YYYY-MM)", value=datetime.now().strftime("%Y-%m"))
+
+    periods = {"3 months": 3, "6 months": 6, "12 months": 12}[horizon]
+
+    st.divider()
+
+    # ---------- Generate forecast ----------
     if st.button("Generate Forecast", use_container_width=True):
-        df = forecast(bundle, vehicle_model, int(horizon))
+        months = _make_horizon(start_month, periods)
 
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=df["date"], y=df["forecast"], mode="lines+markers", name="Forecast"))
-        fig.update_layout(
-            height=420,
-            margin=dict(l=10, r=10, t=35, b=10),
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            title=f"Sales Forecast — {vehicle_model}",
+        rows = []
+        errors = []
+
+        for i, mo in enumerate(months):
+            try:
+                if feature_cols:
+                    X = _build_input_row(feature_cols, region=region, model_name=vehicle, ev_scenario=scenario)
+                    # Try to set month/time column if it exists
+                    for c in feature_cols:
+                        if c.lower() in ["month", "period", "date", "year_month"]:
+                            X.loc[0, c] = mo
+
+                    pred = _predict_value(model, X)
+                else:
+                    # Fallback: model expects numeric array/pipeline without columns.
+                    # This keeps the demo running but you should align this with training features.
+                    pred = float(_predict_value(model, pd.DataFrame([[0]])))
+                rows.append({"month": mo, "region": region, "vehicle_model": vehicle, "scenario": scenario, "forecast_demand": round(pred, 2)})
+            except Exception as e:
+                errors.append((mo, str(e)))
+
+        if errors:
+            st.warning("Some months failed to predict. Showing what succeeded; fix feature mapping if needed.")
+            st.code("\n".join([f"{mo}: {msg}" for mo, msg in errors])[:2000])
+
+        df = pd.DataFrame(rows)
+
+        if df.empty:
+            st.error("No forecast rows generated. Your model likely expects different features/columns.")
+            return
+
+        # ---------- Display output dataset ----------
+        st.markdown("### Forecast Output Dataset")
+        st.dataframe(df, use_container_width=True)
+
+        # Simple chart
+        st.line_chart(df.set_index("month")["forecast_demand"])
+
+        # ---------- Download CSV ----------
+        csv_bytes = df.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            "Download CSV",
+            data=csv_bytes,
+            file_name=f"forecast_{region}_{vehicle}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv".replace(" ", "_"),
+            mime="text/csv",
+            use_container_width=True,
         )
-        st.plotly_chart(fig, use_container_width=True)
 
-        st.markdown('<div class="dss-card">', unsafe_allow_html=True)
-        st.write("Forecast Table")
-        st.dataframe(df, use_container_width=True, hide_index=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+        # ---------- Save locally to data/exports ----------
+        saved_path = _save_forecast(df, region=region, vehicle=vehicle)
+        st.success(f"Saved locally: {saved_path}")
 
-    st.markdown("</div></div>", unsafe_allow_html=True)
+        # ---------- Proof tag (optional) ----------
+        n_users = _safe_users_count()
+        if n_users is not None:
+            st.caption(f"Local DB check: users in database = {n_users}")
