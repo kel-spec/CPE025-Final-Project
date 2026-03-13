@@ -1,3 +1,15 @@
+# =========================
+# Pickle compatibility shim
+# =========================
+class TrainedModelBundle:
+    """
+    Compatibility class for loading old pickles that reference
+    __main__.TrainedModelBundle from the training script/notebook.
+    Only used so joblib/pickle can resolve the symbol.
+    """
+    pass
+
+
 import base64
 import os
 import sqlite3
@@ -110,15 +122,12 @@ def _db_exists() -> bool:
 
 
 def _admin_db_details():
-    """
-    Admin-only details. Never show this to normal users.
-    """
     info = {
         "abs_path": os.path.abspath(DB_PATH),
         "exists": os.path.exists(DB_PATH),
         "size_bytes": None,
         "users_count": None,
-        "latest_users": [],  # safe fields only
+        "latest_users": [],
         "error": None,
     }
     if not info["exists"]:
@@ -131,7 +140,6 @@ def _admin_db_details():
         cur.execute("SELECT COUNT(*) FROM users")
         info["users_count"] = int(cur.fetchone()[0])
 
-        # safe fields only; still admin-only
         try:
             cur.execute(
                 """
@@ -157,10 +165,6 @@ def _admin_db_details():
 
 
 def sidebar_panel():
-    """
-    Sidebar: no other-user exposure.
-    Purpose: session + account summary + utilities only.
-    """
     st.sidebar.markdown("## Panel")
     st.sidebar.caption("Session • Account")
 
@@ -374,13 +378,11 @@ def profile_tab():
 
     st.divider()
 
-    # Visible to everyone (no data leaks)
     with st.expander("Storage status", expanded=False):
         st.write("**Local database exists:**", "Yes" if _db_exists() else "No")
         st.write("**Forecast exports saved:**", f"{_exports_count()} CSV file(s)")
-        st.caption("This confirms your account and exports are stored locally during runtime.")
+        st.caption("Confirms storage without exposing other users.")
 
-    # Admin-only proof (safe, but still restricted)
     if role == "admin":
         with st.expander("System proof (Admin only)", expanded=False):
             info = _admin_db_details()
@@ -390,12 +392,6 @@ def profile_tab():
                 st.write("**DB size (bytes):**", info["size_bytes"])
             if info["users_count"] is not None:
                 st.write("**Users in DB:**", info["users_count"])
-
-            if info["latest_users"]:
-                st.write("**Latest users (safe fields):**")
-                for u, e, r in info["latest_users"]:
-                    st.write(f"- {u} | {e} | {r}")
-
             if info["error"]:
                 st.error(info["error"])
 
