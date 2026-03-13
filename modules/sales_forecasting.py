@@ -1,5 +1,4 @@
 import os
-import sqlite3
 from datetime import datetime
 
 import joblib
@@ -8,64 +7,52 @@ import pandas as pd
 import streamlit as st
 
 BUNDLE_PATH = "models/random_forest_bundle.pkl"
-DB_PATH = "data/app.db"
 EXPORT_DIR = "data/exports"
 
 
-def _ensure_export_dir() -> None:
+def _ensure_export_dir():
     os.makedirs(EXPORT_DIR, exist_ok=True)
 
 
 @st.cache_resource
-def _load_bundle():
+def load_bundle():
     return joblib.load(BUNDLE_PATH)
 
 
-def _infer_feature_columns(bundle) -> list[str] | None:
-    if isinstance(bundle, dict):
-        for k in ["feature_columns", "feature_cols", "columns", "X_columns"]:
-            if k in bundle and isinstance(bundle[k], (list, tuple)):
-                return list(bundle[k])
-    # if it's a custom class, it may have attribute
-    for attr in ["feature_columns", "feature_cols", "columns", "X_columns"]:
-        if hasattr(bundle, attr):
-            val = getattr(bundle, attr)
-            if isinstance(val, (list, tuple)):
-                return list(val)
-    return None
-
-
 def _get_model(bundle):
+    # supports dict bundles or object bundles
     if isinstance(bundle, dict):
-        for k in ["model", "estimator", "pipeline", "clf"]:
+        for k in ("model", "pipeline", "estimator", "clf"):
             if k in bundle:
                 return bundle[k]
-    for attr in ["model", "estimator", "pipeline", "clf"]:
-        if hasattr(bundle, attr):
-            return getattr(bundle, attr)
+    for k in ("model", "pipeline", "estimator", "clf"):
+        if hasattr(bundle, k):
+            return getattr(bundle, k)
     return bundle
 
 
-def _build_input_row(feature_cols: list[str], region: str, model_name: str, ev_scenario: str, ym: str) -> pd.DataFrame:
-    row = {c: 0 for c in feature_cols}
-
-    for c in feature_cols:
-        lc = c.lower()
-        if lc in ["region", "area"]:
-            row[c] = region
-        elif lc in ["model", "vehicle_model", "vehicle"]:
-            row[c] = model_name
-        elif lc in ["scenario", "ev_scenario", "market_trend"]:
-            row[c] = ev_scenario
-        elif lc in ["month", "period", "date", "year_month"]:
-            row[c] = ym
-
-    return pd.DataFrame([row])
+def _get_feature_cols(bundle):
+    if isinstance(bundle, dict):
+        for k in ("feature_columns", "feature_cols", "columns", "X_columns"):
+            if k in bundle and isinstance(bundle[k], (list, tuple)):
+                return list(bundle[k])
+    for k in ("feature_columns", "feature_cols", "columns", "X_columns"):
+        if hasattr(bundle, k):
+            v = getattr(bundle, k)
+            if isinstance(v, (list, tuple)):
+                return list(v)
+    return None
 
 
-def _predict_value(model, X: pd.DataFrame) -> float:
-    y = model.predict(X)
-    return float(np.array(y).ravel()[0])
+def _month_to_yyyymm(ym: str) -> int:
+    # "2026-03" -> 202603
+    y, m = ym.split("-")
+    return int(y) * 100 + int(m)
+
+
+def _month_to_year_month(ym: str) -> tuple[int, int]:
+    y, m = ym.split("-")
+    return int(y), int(m)
 
 
 def _make_horizon(start_month: str, periods: int) -> list[str]:
@@ -81,31 +68,58 @@ def _make_horizon(start_month: str, periods: int) -> list[str]:
     return months
 
 
-def _save_forecast(df: pd.DataFrame, region: str, vehicle: str) -> str:
+def _build_row(feature_cols: list[str], region: str, vehicle: str, scenario: str, ym: str) -> pd.DataFrame:
+    """
+    Build a single-row DataFrame compatible with most sklearn pipelines.
+    Key fix: month/date fields are provided as numeric if the model expects numeric.
+    """
+    year, month = _month_to_year_month(ym)
+    yyyymm = _month_to_yyyymm(ym)
+
+    row = {}
+    for c in feature_cols:
+        lc = c.lower()
+
+        # region / vehicle / scenario
+        if lc in ("region", "area"):
+            row[c] = region
+        elif lc in ("model", "vehicle_model", "vehicle"):
+            row[c] = vehicle
+        elif lc in ("scenario", "ev_scenario", "market_trend"):
+            row[c] = scenario
+
+        # date/month features (NUMERIC)
+        elif lc in ("yyyymm", "yearmonth", "year_month"):
+            row[c] = yyyymm
+        elif lc in ("year",):
+            row[c] = year
+        elif lc in ("month", "mth"):
+            row[c] = month
+        elif lc in ("period",):
+            row[c] = yyyymm
+        elif lc in ("date",):
+            # numeric safe fallback; many models use yyyymm or timestamp-like ints
+            row[c] = yyyymm
+
+        # unknown features: fill with 0 (numeric-safe)
+        else:
+            row[c] = 0
+
+    return pd.DataFrame([row])
+
+
+def _predict(model, X: pd.DataFrame) -> float:
+    y = model.predict(X)
+    return float(np.asarray(y).ravel()[0])
+
+
+def _save_csv(df: pd.DataFrame, region: str, vehicle: str) -> str:
     _ensure_export_dir()
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"forecast_{region}_{vehicle}_{ts}.csv".replace(" ", "_").replace("/", "-")
-    path = os.path.join(EXPORT_DIR, filename)
+    name = f"forecast_{region}_{vehicle}_{ts}.csv".replace(" ", "_")
+    path = os.path.join(EXPORT_DIR, name)
     df.to_csv(path, index=False)
     return path
-
-
-def _safe_users_count() -> int | None:
-    if not os.path.exists(DB_PATH):
-        return None
-    try:
-        con = sqlite3.connect(DB_PATH)
-        cur = con.cursor()
-        cur.execute("SELECT COUNT(*) FROM users")
-        n = int(cur.fetchone()[0])
-        con.close()
-        return n
-    except Exception:
-        try:
-            con.close()
-        except Exception:
-            pass
-        return None
 
 
 def render():
@@ -114,59 +128,56 @@ def render():
 
     if not os.path.exists(BUNDLE_PATH):
         st.error(f"Model bundle not found: {BUNDLE_PATH}")
-        st.info("Put the file here: models/random_forest_bundle.pkl")
+        st.info("Upload your model to: models/random_forest_bundle.pkl")
         return
 
     try:
-        bundle = _load_bundle()
+        bundle = load_bundle()
         model = _get_model(bundle)
-        feature_cols = _infer_feature_columns(bundle)
+        feature_cols = _get_feature_cols(bundle)
     except Exception as e:
         st.error("Failed to load model bundle.")
         st.code(str(e))
         return
 
-    top1, top2, top3 = st.columns([1, 1, 1])
-    with top1:
-        region = st.selectbox("Select Region", ["NCR", "Luzon", "Visayas", "Mindanao"], index=0)
-    with top2:
-        vehicle = st.selectbox("Select Vehicle Model", ["Corolla Cross", "bZ4X", "Vios", "Fortuner"], index=0)
-    with top3:
-        horizon = st.selectbox("Forecast Horizon", ["3 months", "6 months", "12 months"], index=1)
+    # UI
+    a, b, c = st.columns([1, 1, 1])
+    with a:
+        region = st.selectbox("Select Region", ["NCR", "Luzon", "Visayas", "Mindanao"], index=1)
+    with b:
+        vehicle = st.selectbox("Select Vehicle Model", ["Corolla Cross", "bZ4X", "Vios", "Fortuner"], index=3)
+    with c:
+        horizon = st.selectbox("Forecast Horizon", ["3 months", "6 months", "12 months"], index=2)
 
-    scenario = st.selectbox(
-        "EV Market Trend (Scenario)",
-        ["Baseline", "High EV Adoption", "Low EV Adoption"],
-        index=0,
-    )
-
+    scenario = st.selectbox("EV Market Trend (Scenario)", ["Baseline", "High EV Adoption", "Low EV Adoption"], index=1)
     start_month = st.text_input("Start Month (YYYY-MM)", value=datetime.now().strftime("%Y-%m"))
+
     periods = {"3 months": 3, "6 months": 6, "12 months": 12}[horizon]
 
     st.divider()
 
     if st.button("Generate Forecast", use_container_width=True):
         months = _make_horizon(start_month, periods)
-
         rows = []
         errors = []
 
         for ym in months:
             try:
                 if feature_cols:
-                    X = _build_input_row(feature_cols, region, vehicle, scenario, ym)
-                    pred = _predict_value(model, X)
+                    X = _build_row(feature_cols, region, vehicle, scenario, ym)
                 else:
-                    # fallback: model without columns (keeps demo alive)
-                    pred = _predict_value(model, pd.DataFrame([[0]]))
+                    # If feature columns not stored in bundle, we can only try a minimal numeric input.
+                    # This is a fallback; best is to store feature columns during training.
+                    X = pd.DataFrame([[0]])
 
+                pred = _predict(model, X)
                 rows.append(
                     {
                         "month": ym,
                         "region": region,
                         "vehicle_model": vehicle,
                         "scenario": scenario,
-                        "forecast_demand": round(float(pred), 2),
+                        "forecast_demand": round(pred, 2),
                     }
                 )
             except Exception as e:
@@ -178,11 +189,12 @@ def render():
 
         df = pd.DataFrame(rows)
         if df.empty:
-            st.error("No output produced. Align your feature columns with the model training pipeline.")
+            st.error("No forecast produced. Your model likely expects different feature columns.")
             return
 
         st.markdown("### Forecast Output Dataset")
         st.dataframe(df, use_container_width=True)
+
         st.line_chart(df.set_index("month")["forecast_demand"])
 
         csv_bytes = df.to_csv(index=False).encode("utf-8")
@@ -194,9 +206,5 @@ def render():
             use_container_width=True,
         )
 
-        saved_path = _save_forecast(df, region, vehicle)
+        saved_path = _save_csv(df, region, vehicle)
         st.success(f"Saved locally: {saved_path}")
-
-        n_users = _safe_users_count()
-        if n_users is not None:
-            st.caption(f"Local DB check: users in database = {n_users}")
