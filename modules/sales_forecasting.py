@@ -7,9 +7,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-
-# ===== Paths =====
-BUNDLE_PATH = "models/random_forest_bundle.pkl"  # put your .pkl here
+BUNDLE_PATH = "models/random_forest_bundle.pkl"
 DB_PATH = "data/app.db"
 EXPORT_DIR = "data/exports"
 
@@ -20,31 +18,7 @@ def _ensure_export_dir() -> None:
 
 @st.cache_resource
 def _load_bundle():
-    """
-    Flexible loader:
-    - If your bundle is a dict, we will try common keys.
-    - If your bundle is directly a model/pipeline, we use it as-is.
-    """
     return joblib.load(BUNDLE_PATH)
-
-
-def _safe_users_count() -> int | None:
-    """Used only to tag the export with local DB context. Safe if DB/table missing."""
-    if not os.path.exists(DB_PATH):
-        return None
-    try:
-        con = sqlite3.connect(DB_PATH)
-        cur = con.cursor()
-        cur.execute("SELECT COUNT(*) FROM users")
-        n = int(cur.fetchone()[0])
-        con.close()
-        return n
-    except Exception:
-        try:
-            con.close()
-        except Exception:
-            pass
-        return None
 
 
 def _infer_feature_columns(bundle) -> list[str] | None:
@@ -52,6 +26,12 @@ def _infer_feature_columns(bundle) -> list[str] | None:
         for k in ["feature_columns", "feature_cols", "columns", "X_columns"]:
             if k in bundle and isinstance(bundle[k], (list, tuple)):
                 return list(bundle[k])
+    # if it's a custom class, it may have attribute
+    for attr in ["feature_columns", "feature_cols", "columns", "X_columns"]:
+        if hasattr(bundle, attr):
+            val = getattr(bundle, attr)
+            if isinstance(val, (list, tuple)):
+                return list(val)
     return None
 
 
@@ -60,17 +40,15 @@ def _get_model(bundle):
         for k in ["model", "estimator", "pipeline", "clf"]:
             if k in bundle:
                 return bundle[k]
-    return bundle  # bundle might itself be a model/pipeline
+    for attr in ["model", "estimator", "pipeline", "clf"]:
+        if hasattr(bundle, attr):
+            return getattr(bundle, attr)
+    return bundle
 
 
-def _build_input_row(feature_cols: list[str], region: str, model_name: str, ev_scenario: str) -> pd.DataFrame:
-    """
-    Builds a 1-row dataframe for prediction. This is necessarily generic.
-    If your trained model expects different columns, update mapping here to match your training features.
-    """
+def _build_input_row(feature_cols: list[str], region: str, model_name: str, ev_scenario: str, ym: str) -> pd.DataFrame:
     row = {c: 0 for c in feature_cols}
 
-    # Common mappings (safe defaults):
     for c in feature_cols:
         lc = c.lower()
         if lc in ["region", "area"]:
@@ -79,24 +57,18 @@ def _build_input_row(feature_cols: list[str], region: str, model_name: str, ev_s
             row[c] = model_name
         elif lc in ["scenario", "ev_scenario", "market_trend"]:
             row[c] = ev_scenario
+        elif lc in ["month", "period", "date", "year_month"]:
+            row[c] = ym
 
     return pd.DataFrame([row])
 
 
 def _predict_value(model, X: pd.DataFrame) -> float:
-    """
-    Works for sklearn models/pipelines with .predict.
-    """
     y = model.predict(X)
-    # ensure scalar float
     return float(np.array(y).ravel()[0])
 
 
 def _make_horizon(start_month: str, periods: int) -> list[str]:
-    """
-    start_month: "YYYY-MM"
-    returns list of "YYYY-MM" months
-    """
     dt = datetime.strptime(start_month + "-01", "%Y-%m-%d")
     months = []
     y, m = dt.year, dt.month
@@ -118,13 +90,31 @@ def _save_forecast(df: pd.DataFrame, region: str, vehicle: str) -> str:
     return path
 
 
+def _safe_users_count() -> int | None:
+    if not os.path.exists(DB_PATH):
+        return None
+    try:
+        con = sqlite3.connect(DB_PATH)
+        cur = con.cursor()
+        cur.execute("SELECT COUNT(*) FROM users")
+        n = int(cur.fetchone()[0])
+        con.close()
+        return n
+    except Exception:
+        try:
+            con.close()
+        except Exception:
+            pass
+        return None
+
+
 def render():
     st.markdown("## Sales Forecasting")
     st.caption("Generate demand forecasts using the integrated model bundle and export results.")
 
-    # ---------- Load model ----------
     if not os.path.exists(BUNDLE_PATH):
-        st.error(f"Model bundle not found: {BUNDLE_PATH}. Upload it into /models/ and redeploy.")
+        st.error(f"Model bundle not found: {BUNDLE_PATH}")
+        st.info("Put the file here: models/random_forest_bundle.pkl")
         return
 
     try:
@@ -136,7 +126,6 @@ def render():
         st.code(str(e))
         return
 
-    # ---------- Inputs ----------
     top1, top2, top3 = st.columns([1, 1, 1])
     with top1:
         region = st.selectbox("Select Region", ["NCR", "Luzon", "Visayas", "Mindanao"], index=0)
@@ -149,58 +138,53 @@ def render():
         "EV Market Trend (Scenario)",
         ["Baseline", "High EV Adoption", "Low EV Adoption"],
         index=0,
-        help="This is a scenario label. If your model was trained with an EV adoption feature, map it in code.",
     )
 
     start_month = st.text_input("Start Month (YYYY-MM)", value=datetime.now().strftime("%Y-%m"))
-
     periods = {"3 months": 3, "6 months": 6, "12 months": 12}[horizon]
 
     st.divider()
 
-    # ---------- Generate forecast ----------
     if st.button("Generate Forecast", use_container_width=True):
         months = _make_horizon(start_month, periods)
 
         rows = []
         errors = []
 
-        for i, mo in enumerate(months):
+        for ym in months:
             try:
                 if feature_cols:
-                    X = _build_input_row(feature_cols, region=region, model_name=vehicle, ev_scenario=scenario)
-                    # Try to set month/time column if it exists
-                    for c in feature_cols:
-                        if c.lower() in ["month", "period", "date", "year_month"]:
-                            X.loc[0, c] = mo
-
+                    X = _build_input_row(feature_cols, region, vehicle, scenario, ym)
                     pred = _predict_value(model, X)
                 else:
-                    # Fallback: model expects numeric array/pipeline without columns.
-                    # This keeps the demo running but you should align this with training features.
-                    pred = float(_predict_value(model, pd.DataFrame([[0]])))
-                rows.append({"month": mo, "region": region, "vehicle_model": vehicle, "scenario": scenario, "forecast_demand": round(pred, 2)})
+                    # fallback: model without columns (keeps demo alive)
+                    pred = _predict_value(model, pd.DataFrame([[0]]))
+
+                rows.append(
+                    {
+                        "month": ym,
+                        "region": region,
+                        "vehicle_model": vehicle,
+                        "scenario": scenario,
+                        "forecast_demand": round(float(pred), 2),
+                    }
+                )
             except Exception as e:
-                errors.append((mo, str(e)))
+                errors.append((ym, str(e)))
 
         if errors:
-            st.warning("Some months failed to predict. Showing what succeeded; fix feature mapping if needed.")
-            st.code("\n".join([f"{mo}: {msg}" for mo, msg in errors])[:2000])
+            st.warning("Some predictions failed. This usually means feature mismatch vs training.")
+            st.code("\n".join([f"{m}: {msg}" for m, msg in errors])[:2000])
 
         df = pd.DataFrame(rows)
-
         if df.empty:
-            st.error("No forecast rows generated. Your model likely expects different features/columns.")
+            st.error("No output produced. Align your feature columns with the model training pipeline.")
             return
 
-        # ---------- Display output dataset ----------
         st.markdown("### Forecast Output Dataset")
         st.dataframe(df, use_container_width=True)
-
-        # Simple chart
         st.line_chart(df.set_index("month")["forecast_demand"])
 
-        # ---------- Download CSV ----------
         csv_bytes = df.to_csv(index=False).encode("utf-8")
         st.download_button(
             "Download CSV",
@@ -210,11 +194,9 @@ def render():
             use_container_width=True,
         )
 
-        # ---------- Save locally to data/exports ----------
-        saved_path = _save_forecast(df, region=region, vehicle=vehicle)
+        saved_path = _save_forecast(df, region, vehicle)
         st.success(f"Saved locally: {saved_path}")
 
-        # ---------- Proof tag (optional) ----------
         n_users = _safe_users_count()
         if n_users is not None:
             st.caption(f"Local DB check: users in database = {n_users}")
