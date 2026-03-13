@@ -6,8 +6,9 @@ import streamlit as st
 from streamlit_folium import st_folium
 import folium
 
-ORS_GEOCODE_URL = "https://api.openrouteservice.org/geocode/search"
-ORS_DIRECTIONS_URL = "https://api.openrouteservice.org/v2/directions/driving-car"
+
+NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
+OSRM_ROUTE_URL = "https://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}"
 OCM_URL = "https://api.openchargemap.io/v3/poi/"
 
 
@@ -16,17 +17,6 @@ def _get_secret(name: str) -> Optional[str]:
         return st.secrets.get(name)  # type: ignore[attr-defined]
     except Exception:
         return None
-
-
-def _http_debug(r: requests.Response) -> str:
-    # Keep it short and safe
-    txt = ""
-    try:
-        txt = r.text
-    except Exception:
-        txt = ""
-    txt = (txt or "")[:800]
-    return f"HTTP {r.status_code}\n{txt}"
 
 
 def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -41,98 +31,83 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 
 
 @st.cache_data(show_spinner=False)
-def ors_geocode(text: str, country: str = "") -> Optional[Tuple[float, float, str]]:
+def geocode_nominatim(text: str, country_codes: str = "ph") -> Optional[Tuple[float, float, str]]:
     """
-    Returns (lat, lon, label) using ORS geocoder.
-    Robust:
-    - tries with country filter if provided
-    - falls back to no country filter
+    Returns (lat, lon, display_name).
+    Uses Nominatim. Respect usage: include User-Agent and keep requests minimal.
     """
-    api_key = _get_secret("ORS_API_KEY")
-    if not api_key:
-        raise RuntimeError("Missing ORS_API_KEY in secrets.")
-
-    def _call(params: dict) -> requests.Response:
-        return requests.get(ORS_GEOCODE_URL, params=params, timeout=25)
-
-    base_params = {
-        "api_key": api_key,
-        "text": text,
-        "size": 1,
+    headers = {"User-Agent": "ToyotaDSS/1.0 (student project)"}
+    params = {
+        "q": text,
+        "format": "json",
+        "limit": 1,
     }
+    if country_codes:
+        params["countrycodes"] = country_codes
 
-    # attempt 1: with country filter
-    if country:
-        p1 = dict(base_params)
-        p1["boundary.country"] = country
-        r = _call(p1)
-        if r.status_code == 200:
-            data = r.json()
-            feats = data.get("features", [])
-            if feats:
-                f0 = feats[0]
-                lon, lat = f0["geometry"]["coordinates"]
-                label = f0["properties"].get("label", text)
-                return float(lat), float(lon), label
-
-    # attempt 2: no country filter
-    r2 = _call(base_params)
-    if r2.status_code != 200:
-        raise requests.HTTPError(_http_debug(r2), response=r2)
-
-    data2 = r2.json()
-    feats2 = data2.get("features", [])
-    if not feats2:
+    r = requests.get(NOMINATIM_URL, params=params, headers=headers, timeout=25)
+    if r.status_code != 200:
         return None
-    f0 = feats2[0]
-    lon, lat = f0["geometry"]["coordinates"]
-    label = f0["properties"].get("label", text)
-    return float(lat), float(lon), label
+    data = r.json()
+    if not data:
+        return None
+
+    lat = float(data[0]["lat"])
+    lon = float(data[0]["lon"])
+    label = data[0].get("display_name", text)
+    return lat, lon, label
 
 
 @st.cache_data(show_spinner=False)
-def ors_directions(start_lonlat: Tuple[float, float], end_lonlat: Tuple[float, float]) -> Dict[str, Any]:
-    api_key = _get_secret("ORS_API_KEY")
-    if not api_key:
-        raise RuntimeError("Missing ORS_API_KEY in secrets.")
-
-    headers = {"Authorization": api_key, "Content-Type": "application/json"}
-    body = {"coordinates": [[start_lonlat[0], start_lonlat[1]], [end_lonlat[0], end_lonlat[1]]]}
-
-    r = requests.post(ORS_DIRECTIONS_URL, headers=headers, json=body, timeout=35)
-    if r.status_code != 200:
-        raise requests.HTTPError(_http_debug(r), response=r)
-
+def route_osrm(start: Tuple[float, float], end: Tuple[float, float]) -> Dict[str, Any]:
+    """
+    OSRM route.
+    start/end are (lat, lon).
+    Returns:
+      - distance_km
+      - duration_min
+      - coords_latlon: list of (lat, lon) from GeoJSON geometry
+      - steps: list of turn instructions (limited)
+    """
+    lat1, lon1 = start
+    lat2, lon2 = end
+    url = OSRM_ROUTE_URL.format(lon1=lon1, lat1=lat1, lon2=lon2, lat2=lat2)
+    params = {
+        "overview": "full",
+        "geometries": "geojson",
+        "steps": "true",
+    }
+    r = requests.get(url, params=params, timeout=35)
+    r.raise_for_status()
     data = r.json()
-    feat = data["features"][0]
-    summary = feat["properties"]["summary"]
 
-    distance_km = float(summary["distance"]) / 1000.0
-    duration_min = float(summary["duration"]) / 60.0
+    if data.get("code") != "Ok" or not data.get("routes"):
+        raise RuntimeError(f"OSRM routing failed: {data.get('message', 'unknown')}")
 
-    line = feat["geometry"]["coordinates"]  # [lon, lat]
-    coords_latlon = [(float(lat), float(lon)) for lon, lat in line]
+    route = data["routes"][0]
+    distance_km = float(route["distance"]) / 1000.0
+    duration_min = float(route["duration"]) / 60.0
 
-    # optional steps (turn-by-turn)
-    steps = []
+    coords = route["geometry"]["coordinates"]  # [lon, lat]
+    coords_latlon = [(float(lat), float(lon)) for lon, lat in coords]
+
+    steps_out = []
     try:
-        seg = feat["properties"]["segments"][0]
-        for s in seg.get("steps", []):
-            steps.append(
-                {
-                    "instruction": s.get("instruction", ""),
-                    "distance_m": s.get("distance", 0),
-                    "duration_s": s.get("duration", 0),
-                }
-            )
+        legs = route.get("legs", [])
+        if legs:
+            for step in legs[0].get("steps", [])[:30]:
+                man = step.get("maneuver", {})
+                inst = man.get("instruction", "")
+                dist = step.get("distance", 0.0)
+                steps_out.append({"instruction": inst, "distance_m": dist})
     except Exception:
-        steps = []
+        steps_out = []
 
     return {
         "distance_km": distance_km,
         "duration_min": duration_min,
         "coords_latlon": coords_latlon,
-        "steps": steps,
+        "steps": steps_out,
     }
 
 
@@ -154,7 +129,6 @@ def ocm_chargers_near(lat: float, lon: float, radius_km: float = 10.0, max_resul
 
     r = requests.get(OCM_URL, params=params, timeout=35)
     if r.status_code != 200:
-        # Don't fail routing if chargers fail
         return []
     return r.json()
 
@@ -203,6 +177,7 @@ def _render_map(
         lon = addr.get("Longitude")
         if lat is None or lon is None:
             continue
+
         title = addr.get("Title", "Charging Station")
         town = addr.get("Town", "")
         pop = f"<b>{title}</b><br/>{town}"
@@ -234,11 +209,7 @@ def _render_map(
 
 def render():
     st.markdown("## EV Smart Routing")
-    st.caption("Routing + map + EV charger overlay using OpenRouteService and OpenChargeMap.")
-
-    if not _get_secret("ORS_API_KEY"):
-        st.error("Missing ORS_API_KEY. Add it to .streamlit/secrets.toml or Streamlit Cloud Secrets.")
-        return
+    st.caption("Routing + map + EV charger overlay using OSRM (routing) + Nominatim (geocoding) + OpenChargeMap (chargers).")
 
     left, right = st.columns([2, 1], vertical_alignment="top")
 
@@ -246,7 +217,7 @@ def render():
         st.markdown("### Route inputs")
         start_text = st.text_input("Start location", value="Quezon City, Metro Manila")
         end_text = st.text_input("Destination", value="Makati, Metro Manila")
-        country = st.text_input("Country code (optional)", value="PH", help="ISO country code (PH). Leave blank for global.")
+        country_codes = st.text_input("Country codes (optional)", value="ph", help="Comma-separated ISO country codes, e.g., 'ph'. Leave blank for global.")
 
     with right:
         st.markdown("### EV settings (optional)")
@@ -257,26 +228,20 @@ def render():
     st.divider()
 
     if st.button("Compute Route", use_container_width=True):
-        try:
-            with st.spinner("Geocoding start/destination..."):
-                start = ors_geocode(start_text, country=country.strip())
-                end = ors_geocode(end_text, country=country.strip())
-        except Exception as e:
-            st.error("Geocoding failed.")
-            st.code(str(e))
-            st.info("Most common causes: wrong/expired ORS key, rate limit, or ORS service issue.")
-            return
+        with st.spinner("Geocoding start/destination..."):
+            start = geocode_nominatim(start_text, country_codes=country_codes.strip())
+            end = geocode_nominatim(end_text, country_codes=country_codes.strip())
 
         if not start or not end:
-            st.error("Could not geocode one or both locations. Try more specific addresses.")
+            st.error("Geocoding failed. Use more specific locations (city + area).")
             return
 
         start_lat, start_lon, start_label = start
         end_lat, end_lon, end_label = end
 
         try:
-            with st.spinner("Computing route..."):
-                route = ors_directions((start_lon, start_lat), (end_lon, end_lat))
+            with st.spinner("Computing route (OSRM)..."):
+                route = route_osrm((start_lat, start_lon), (end_lat, end_lon))
         except Exception as e:
             st.error("Routing failed.")
             st.code(str(e))
@@ -311,7 +276,7 @@ def render():
         )
 
         if steps:
-            st.markdown("### Turn-by-turn (ORS)")
+            st.markdown("### Turn-by-turn (OSRM)")
             for i, s in enumerate(steps[:20], start=1):
                 st.write(f"{i}. {s['instruction']} — {s['distance_m']:.0f} m")
 
