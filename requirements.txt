@@ -10,3 +10,9 @@ joblib
 pandas
 numpy
 plotly
+requests
+folium
+streamlit-folium
+joblib
+numpy
+pandas
